@@ -31,7 +31,7 @@ export function SettingsModal({ settings: S, jira, lastSync, syncing, onSync, on
     live: {
       dot: '#3FA27A',
       title: 'Live gekoppeld met Jira',
-      text: `Tickets uit ${S.site} die aan de JQL hieronder voldoen, komen automatisch in de intake-inbox. Matching gebeurt op Issue key: je planning blijft staan, alleen Jira-velden worden bijgewerkt.`,
+      text: `Tickets uit ${S.site} die aan de JQL hieronder voldoen, komen automatisch bij Nog inplannen. Matching gebeurt op Issue key: je planning blijft staan, alleen Jira-velden worden bijgewerkt.`,
     },
     demo: {
       dot: '#3FA27A',
@@ -50,7 +50,7 @@ export function SettingsModal({ settings: S, jira, lastSync, syncing, onSync, on
     <Modal width={640} onClose={onClose}>
       <div className="modal-head">
         <h2>Jira-koppeling</h2>
-        <p>Bepaal welke tickets in de intake-inbox binnenkomen.</p>
+        <p>Bepaal welke tickets bij Nog inplannen binnenkomen.</p>
       </div>
       <div className="modal-body" style={{ gap: 16 }}>
         <div className="status-box">

@@ -13,6 +13,7 @@ import { derive, EMPTY_FILTERS, makeMatcher, type WarnEntry } from './lib/derive
 import { usePlanning, useToast, type Backend, type TaskForm } from './lib/store';
 import type { AppData, DragInfo, Filters, Item, SortKey, View } from './lib/types';
 import { InboxView } from './views/InboxView';
+import { ProjectsView } from './views/ProjectsView';
 import { QuarterView } from './views/QuarterView';
 import { TeamView } from './views/TeamView';
 import { WeekView } from './views/WeekView';
@@ -23,6 +24,7 @@ const SUBS: Record<View, string> = {
   inbox: 'Alles wat nog ingepland moet worden, uit Jira en handmatig.',
   week: 'Sleep items naar een teamlid en week. De balk laat zien hoeveel ruimte er nog is.',
   quarter: 'Projecten, epics en deadlines op een tijdlijn.',
+  projects: 'Alle projecten (epics) met hun taken, uitvoerders en voortgang.',
   team: 'Beheer je team, beschikbaarheid en vaste taken.',
 };
 
@@ -232,6 +234,16 @@ export default function App({ initial, backend, account }: Props) {
             />
           )}
           {view === 'quarter' && <QuarterView dv={dv} items={data.items} qOffset={qOffset} onQOffset={setQOffset} match={match} onSelect={setSelected} />}
+          {view === 'projects' && (
+            <ProjectsView
+              dv={dv}
+              items={data.items}
+              match={match}
+              filtering={Object.values(filters).some(Boolean) || !!search.trim()}
+              site={data.settings.site}
+              onSelect={setSelected}
+            />
+          )}
           {view === 'team' && (
             <TeamView
               dv={dv}

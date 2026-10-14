@@ -132,6 +132,7 @@ export function derive(data: AppData, weeksVisible: number) {
     assigneeOptions,
     projectOptions,
     epicsActive,
+    epics: data.settings.jiraEpics || [],
   };
 }
 
