@@ -3,7 +3,7 @@ import { addDays, iso, monday, toDate } from './dates';
 import { blankItem } from './planning';
 import type { AppData, Item, JiraIssue, Member, Settings } from './types';
 
-export const DEFAULT_JQL = 'project = MKT AND statusCategory != Done ORDER BY created DESC';
+export const DEFAULT_JQL = 'project = MKT AND issuetype != Epic AND statusCategory != Done ORDER BY created DESC';
 
 export const DEFAULT_SETTINGS: Settings = {
   site: 'zien24.atlassian.net',
@@ -18,7 +18,8 @@ export const DEFAULT_SETTINGS: Settings = {
 export function migrateSettings(s: Settings): Settings {
   const out = { ...DEFAULT_SETTINGS, ...s };
   if (out.site === 'zibber.atlassian.net') out.site = DEFAULT_SETTINGS.site;
-  if (out.jql === 'project = MKT AND issuetype = Intake ORDER BY created DESC') out.jql = DEFAULT_JQL;
+  // Eerdere standaard-JQL's: de demo-variant, en die zonder uitsluiting van epics (epics zijn projecten).
+  if (out.jql === 'project = MKT AND issuetype = Intake ORDER BY created DESC' || out.jql === 'project = MKT AND statusCategory != Done ORDER BY created DESC') out.jql = DEFAULT_JQL;
   return out;
 }
 

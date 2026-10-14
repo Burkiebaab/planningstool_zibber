@@ -1,4 +1,4 @@
-import { REQS } from './constants';
+import { NO_PROJECT, REQS } from './constants';
 import { addDays, fmt, fmtH, iso, monday, toDate, weekNo } from './dates';
 import { capOf, estimateOf, inInbox, isDone, personOf, recurH } from './planning';
 import type { Allocation, AppData, Filters, Item, Member } from './types';
@@ -93,7 +93,14 @@ export function derive(data: AppData, weeksVisible: number) {
   const byName = (a: string, b: string) => a.localeCompare(b, 'nl');
   const reqList = [...new Set([...REQS, ...items.map((i) => i.requester).filter(Boolean)])];
   const personList = [...new Set(items.map(personOf).filter(Boolean))].sort(byName);
-  const projects = [...new Set([...data.projects, ...items.map((i) => i.project).filter(Boolean)])].sort(byName);
+  // Met een live Jira-koppeling zijn de epics van het marketingproject de projecten.
+  const epicNames = [...new Set((data.settings.jiraEpics || []).map((e) => e.name))].sort(byName);
+  const epicsActive = epicNames.length > 0;
+  const inUse = items.map((i) => i.project).filter(Boolean);
+  /** Keuzelijst voor het project van een taak. */
+  const projectOptions = epicsActive ? [NO_PROJECT, ...epicNames] : [...new Set([...data.projects, ...inUse])].sort(byName);
+  /** Projectfilter: de keuzelijst plus projecten die nog bij taken in gebruik zijn. */
+  const projects = [...new Set([...projectOptions, ...inUse])].sort(byName);
 
   return {
     now,
@@ -111,6 +118,8 @@ export function derive(data: AppData, weeksVisible: number) {
     reqList,
     personList,
     projects,
+    projectOptions,
+    epicsActive,
   };
 }
 

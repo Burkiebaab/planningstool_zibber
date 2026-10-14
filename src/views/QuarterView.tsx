@@ -1,4 +1,4 @@
-import { NL_MF } from '../lib/constants';
+import { NL_MF, NO_PROJECT } from '../lib/constants';
 import { addDays, fmt, iso, monday, toDate, weekNo } from '../lib/dates';
 import type { Derived } from '../lib/derive';
 import { isDone, projColor } from '../lib/planning';
@@ -53,7 +53,7 @@ export function QuarterView({ dv, items, qOffset, onQOffset, match, onSelect }: 
   items
     .filter((i) => !i.recurring && match(i))
     .forEach((i) => {
-      const k = i.project || 'Zonder project';
+      const k = i.project || NO_PROJECT;
       (groups[k] = groups[k] || []).push(i);
     });
 
