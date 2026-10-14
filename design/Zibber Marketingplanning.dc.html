@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#FFFFFF;color:#1E2E4B;font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#1F7FF0;text-decoration:none}
+a:hover{color:#1767C4;text-decoration:underline}
+button,input,select,textarea{font-family:inherit;color:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid #1F7FF0;outline-offset:-1px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#D5DEEB;border-radius:6px;border:2px solid #fff}
+@keyframes zbToast{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
+</helmet>
+<div style="display:grid;grid-template-columns:228px minmax(0,1fr);height:100vh;overflow:hidden;background:#FFFFFF;color:#1E2E4B">
+  <aside style="background:#1E2E4B;color:#FFFFFF;display:flex;flex-direction:column;padding:24px 14px 16px;gap:28px;min-height:0">
+    <div style="padding:0 10px;display:flex;flex-direction:column;gap:2px">
+      <div style="font-size:26px;font-weight:700;letter-spacing:-0.03em">zibber</div>
+      <div style="font-size:12.5px;color:#AFC0DC;font-weight:500">Marketingplanning</div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.go }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:0;border-radius:10px;cursor:pointer;text-align:left;font-size:14px;font-weight:600;background:{{ n.bg }};color:{{ n.fg }}">
+          <span>{{ n.label }}</span>
+          <sc-if value="{{ n.hasCount }}"><span style="font-size:12px;min-width:24px;text-align:center;padding:2px 8px;border-radius:999px;background:#1F7FF0;color:#FFFFFF">{{ n.count }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="background:rgba(255,255,255,0.07);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{ syncDot }}"></span>
+        <span style="font-size:13px;font-weight:700">Jira</span>
+        <span style="font-size:11.5px;color:#AFC0DC">{{ syncMode }}</span>
+      </div>
+      <div style="font-size:12px;color:#C9D5EA;line-height:1.45">Laatst gesynchroniseerd om {{ syncTime }}<br>{{ autoLabel }}</div>
+      <div style="display:flex;gap:6px">
+        <button onClick="{{ syncNow }}" style="flex:1;height:32px;border:0;border-radius:9px;background:#FFFFFF;color:#1E2E4B;font-size:13px;font-weight:600;cursor:pointer">{{ syncBtn }}</button>
+        <button onClick="{{ openSettings }}" title="Jira-instellingen" style="height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.25);border-radius:9px;background:transparent;color:#FFFFFF;font-size:12.5px;font-weight:600;cursor:pointer">Instellingen</button>
+      </div>
+    </div>
+  </aside>
+
+  <main style="display:flex;flex-direction:column;min-width:0;min-height:0">
+    <header style="padding:20px 28px 16px;border-bottom:1px solid #E6ECF4;display:flex;flex-direction:column;gap:14px;background:#FFFFFF">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <h1 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;color:#1E2E4B">{{ viewTitle }}</h1>
+          <p style="margin:0;font-size:14px;color:#5F6F89">{{ viewSub }}</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <sc-if value="{{ hasWarn }}">
+            <div style="position:relative">
+              <button onClick="{{ toggleWarn }}" style="display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;border:1px solid #F0D3CD;border-radius:10px;background:#FDF5F3;color:#9A3E33;font-weight:600;font-size:14px;cursor:pointer">
+                <span style="width:18px;height:18px;border-radius:50%;background:#D27466;color:#FFFFFF;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span>
+                <span>{{ warnLabel }}</span>
+              </button>
+              <sc-if value="{{ warnOpen }}">
+                <div style="position:absolute;right:0;top:46px;width:390px;max-height:440px;overflow:auto;background:#FFFFFF;border:1px solid #E3E9F2;border-radius:14px;box-shadow:0 16px 40px rgba(30,46,75,0.16);z-index:45;padding:8px;display:flex;flex-direction:column;gap:2px">
+                  <sc-for list="{{ warnList }}" as="w">
+                    <button onClick="{{ w.go }}" style="display:flex;gap:10px;align-items:flex-start;text-align:left;border:0;background:transparent;padding:10px;border-radius:10px;cursor:pointer" style-hover="background:#F3F7FE">
+                      <span style="width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:{{ w.color }}"></span>
+                      <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                        <span style="font-size:13.5px;font-weight:600;color:#1E2E4B">{{ w.title }}</span>
+                        <span style="font-size:12.5px;color:#5F6F89">{{ w.sub }}</span>
+                      </span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <button onClick="{{ exportCsv }}" style="height:38px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;color:#1E2E4B;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#F5F8FD">Exporteer CSV</button>
+          <button onClick="{{ openTask }}" style="height:38px;padding:0 18px;border:0;border-radius:10px;background:#1F7FF0;color:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 2px 6px rgba(31,127,240,0.25)" style-hover="background:#1767C4">+ Taak</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="position:relative;flex:0 1 290px;min-width:200px">
+          <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Zoek op titel, key, project of persoon" style="width:100%;height:36px;padding:0 12px 0 34px;border:1px solid #D9E2EF;border-radius:10px;font-size:13.5px;background:#FFFFFF">
+          <span style="position:absolute;left:12px;top:11px;width:12px;height:12px;border:2px solid #8C9BB3;border-radius:50%"></span>
+        </div>
+        <sc-for list="{{ filterList }}" as="f" hint-placeholder-count="5">
+          <select value="{{ f.value }}" onChange="{{ f.on }}" style="height:36px;padding:0 8px;border:1px solid {{ f.border }};border-radius:10px;font-size:13px;background:{{ f.bg }};cursor:pointer;max-width:180px">{{ f.els }}</select>
+        </sc-for>
+        <sc-if value="{{ hasFilters }}"><button onClick="{{ clearFilters }}" style="border:0;background:transparent;color:#1F7FF0;font-weight:600;font-size:13px;cursor:pointer;padding:0 6px">Wis filters</button></sc-if>
+      </div>
+    </header>
+
+    <div style="flex:1;overflow:auto;padding:24px 28px 48px;min-height:0">
+
+      <sc-if value="{{ isInbox }}">
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:1200px;overflow-x:auto;padding-bottom:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="font-size:14px;color:#5F6F89">{{ inboxSummary }}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;color:#5F6F89">Sorteer op</span>
+              <div style="display:flex;background:#ECF2FD;border-radius:10px;padding:3px;gap:2px">
+                <sc-for list="{{ sortOpts }}" as="o">
+                  <button onClick="{{ o.go }}" style="border:0;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:72px minmax(240px,1fr) 150px 88px 88px 52px;min-width:860px;gap:16px;padding:0 18px;font-size:11.5px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em">
+            <span>Prioriteit</span><span>Werkzaamheid</span><span>Aanvrager</span><span>Aangemaakt</span><span>Deadline</span><span style="text-align:right">Uren</span>
+          </div>
+          <sc-if value="{{ inboxEmpty }}">
+            <div style="background:#ECF2FD;border-radius:16px;padding:48px 24px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center">
+              <div style="font-size:17px;font-weight:700">{{ inboxEmptyTitle }}</div>
+              <div style="font-size:14px;color:#5F6F89">{{ inboxEmptySub }}</div>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ inboxItems }}" as="it" hint-placeholder-count="6">
+              <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ it.onDragEnd }}" onClick="{{ it.onClick }}" style="display:grid;grid-template-columns:72px minmax(240px,1fr) 150px 88px 88px 52px;min-width:860px;align-items:center;gap:16px;padding:14px 18px;background:#FFFFFF;border:1px solid #E3E9F2;border-radius:14px;cursor:pointer;box-shadow:0 1px 2px rgba(30,46,75,0.04)" style-hover="border-color:#B9CDEB;box-shadow:0 6px 18px rgba(30,46,75,0.08)">
+                <span style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#3A4A66"><span style="width:8px;height:8px;border-radius:50%;background:{{ it.prioColor }}"></span>{{ it.prio }}</span>
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <span style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.title }}</span>
+                    <sc-if value="{{ it.isNew }}"><span style="flex-shrink:0;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#1F7FF0;color:#FFFFFF">Nieuw</span></sc-if>
+                    <sc-if value="{{ it.isPartial }}"><span style="flex-shrink:0;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:#ECF2FD;color:#1E2E4B">{{ it.partial }}</span></sc-if>
+                    <sc-if value="{{ it.hasWarn }}"><span title="{{ it.warnText }}" style="flex-shrink:0;width:18px;height:18px;border-radius:50%;background:#F7E1DC;color:#9A3E33;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span></sc-if>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#5F6F89;min-width:0">
+                    <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;border:1px solid #D4DEEE;color:#3A4A66">{{ it.src }}</span>
+                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.meta }}</span>
+                  </div>
+                </div>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:13px;font-weight:600;color:#1E2E4B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.person }}</span>
+                  <span style="font-size:11.5px;color:#7A89A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.dept }}</span>
+                </span>
+                <span style="font-size:13px;color:#3A4A66">{{ it.created }}</span>
+                <span style="font-size:13px;font-weight:600;color:{{ it.dueColor }}">{{ it.due }}</span>
+                <span style="font-size:14px;font-weight:700;text-align:right">{{ it.hours }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWeek }}">
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start">
+          <div onDragOver="{{ railOver }}" onDrop="{{ railDrop }}" style="position:sticky;top:0;background:{{ railBg }};border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 200px);overflow:auto">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:14px;font-weight:700">Inbox</span>
+              <span style="font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#FFFFFF;color:#1E2E4B">{{ railCount }}</span>
+            </div>
+            <span style="font-size:12px;color:#5F6F89;line-height:1.45">Sleep een item naar een teamlid en week. Sleep het terug om uit te plannen.</span>
+            <sc-if value="{{ railEmpty }}"><div style="padding:22px 8px;text-align:center;font-size:13px;color:#3A4A66;font-weight:600">Alles ingepland. Lekker bezig.</div></sc-if>
+            <sc-for list="{{ railItems }}" as="it" hint-placeholder-count="4">
+              <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ it.onDragEnd }}" onClick="{{ it.onClick }}" style="background:#FFFFFF;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;cursor:grab;box-shadow:0 1px 2px rgba(30,46,75,0.06)" style-hover="box-shadow:0 4px 14px rgba(30,46,75,0.12)">
+                <div style="display:flex;gap:7px;align-items:flex-start">
+                  <span style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:{{ it.prioColor }}"></span>
+                  <span style="font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ it.title }}</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:#5F6F89">
+                  <span style="font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:5px;border:1px solid #D4DEEE;color:#3A4A66">{{ it.src }}</span>
+                  <span style="font-weight:700;color:#1E2E4B">{{ it.hours }}</span>
+                  <span style="color:{{ it.dueColor }}">{{ it.due }}</span>
+                  <sc-if value="{{ it.isNew }}"><span style="font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#1F7FF0;color:#FFFFFF">Nieuw</span></sc-if>
+                  <sc-if value="{{ it.isPartial }}"><span style="font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:#ECF2FD;color:#1E2E4B">{{ it.partial }}</span></sc-if>
+                  <sc-if value="{{ it.hasWarn }}"><span title="{{ it.warnText }}" style="width:16px;height:16px;border-radius:50%;background:#F7E1DC;color:#9A3E33;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:6px">
+                <button onClick="{{ prevWeeks }}" style="width:34px;height:34px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;cursor:pointer;font-size:16px">‹</button>
+                <button onClick="{{ thisWeek }}" style="height:34px;padding:0 12px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;cursor:pointer;font-size:13px;font-weight:600">Deze week</button>
+                <button onClick="{{ nextWeeks }}" style="width:34px;height:34px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;cursor:pointer;font-size:16px">›</button>
+                <span style="font-size:13px;color:#5F6F89;margin-left:8px">{{ weekRangeLabel }}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#5F6F89">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:6px;border-radius:3px;background:#86C3A3"></span>Ruimte</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:6px;border-radius:3px;background:#E2B65C"></span>Vol</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:6px;border-radius:3px;background:#D98073"></span>Overboekt</span>
+              </div>
+            </div>
+            <div style="border:1px solid #E3E9F2;border-radius:16px;overflow:auto;background:#FFFFFF">
+              <div style="display:grid;grid-template-columns:{{ gridCols }};min-width:{{ gridMinW }}">
+                <div style="position:sticky;left:0;z-index:3;background:#F7F9FD;padding:12px 14px;font-size:11.5px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid #E3E9F2;display:flex;align-items:flex-end">Team</div>
+                <sc-for list="{{ weeks }}" as="w" hint-placeholder-count="8">
+                  <div style="background:{{ w.bg }};padding:10px 12px;border-left:1px solid #EEF2F8;border-bottom:1px solid #E3E9F2;display:flex;flex-direction:column;gap:2px">
+                    <span style="font-size:13px;font-weight:700;color:{{ w.color }}">{{ w.label }}</span>
+                    <span style="font-size:12px;color:#5F6F89">{{ w.range }}</span>
+                  </div>
+                </sc-for>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+                  <div style="position:sticky;left:0;z-index:2;background:#FFFFFF;border-top:1px solid #EEF2F8;padding:12px 10px 12px 14px;display:flex;align-items:flex-start;gap:10px">
+                    <span style="width:34px;height:34px;border-radius:50%;flex-shrink:0;background:{{ r.color }};color:#FFFFFF;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ r.initials }}</span>
+                    <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                      <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                      <span style="font-size:12px;color:#5F6F89;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.role }}</span>
+                      <span style="font-size:11.5px;color:#7A89A3">{{ r.hoursLabel }}</span>
+                      <sc-if value="{{ r.isExtern }}"><span style="align-self:flex-start;margin-top:2px;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:#ECF2FD;color:#1E2E4B">Extern</span></sc-if>
+                    </div>
+                    <button onClick="{{ r.menu }}" title="Opties" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:16px;font-weight:700;color:#5F6F89;line-height:1" style-hover="background:#ECF2FD">⋯</button>
+                  </div>
+                  <sc-for list="{{ r.cells }}" as="c">
+                    <div onDragOver="{{ c.over }}" onDrop="{{ c.drop }}" style="border-left:1px solid #EEF2F8;border-top:1px solid #EEF2F8;padding:10px;display:flex;flex-direction:column;gap:6px;min-height:116px;background:{{ c.bg }}">
+                      <div style="display:flex;flex-direction:column;gap:4px">
+                        <div style="display:flex;justify-content:space-between;gap:4px;font-size:11.5px;font-weight:600;color:#5F6F89"><span>{{ c.capLabel }}</span><span style="color:{{ c.statusFg }}">{{ c.statusLabel }}</span></div>
+                        <div style="height:5px;border-radius:99px;background:#E6ECF5;overflow:hidden"><div style="height:100%;border-radius:99px;width:{{ c.pct }};background:{{ c.barColor }}"></div></div>
+                        <sc-if value="{{ c.hasNote }}"><span style="font-size:11px;color:#7A89A3">{{ c.note }}</span></sc-if>
+                      </div>
+                      <sc-for list="{{ c.chips }}" as="ch">
+                        <div draggable="{{ ch.draggable }}" onDragStart="{{ ch.onDragStart }}" onDragEnd="{{ ch.onDragEnd }}" onClick="{{ ch.onClick }}" style="background:#ECF2FD;border-radius:8px;padding:6px 8px;display:flex;flex-direction:column;gap:3px;cursor:pointer;opacity:{{ ch.opacity }}" style-hover="background:#E0EAFB">
+                          <div style="display:flex;gap:6px;align-items:flex-start">
+                            <span style="width:6px;height:6px;border-radius:2px;margin-top:5px;flex-shrink:0;background:{{ ch.dot }}"></span>
+                            <span style="font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-decoration:{{ ch.deco }}">{{ ch.title }}</span>
+                          </div>
+                          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#5F6F89;padding-left:12px">
+                            <span style="font-weight:700;color:#1E2E4B">{{ ch.hours }}</span>
+                            <span>{{ ch.src }}</span>
+                            <sc-if value="{{ ch.hasWarn }}"><span title="{{ ch.warnText }}" style="width:14px;height:14px;border-radius:50%;background:#F7E1DC;color:#9A3E33;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center">!</span></sc-if>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </sc-for>
+              </div>
+              <sc-if value="{{ noMembers }}"><div style="padding:28px;text-align:center;font-size:14px;color:#5F6F89">Nog geen teamleden. Voeg je eerste collega toe.</div></sc-if>
+              <div style="position:sticky;left:0;padding:12px 14px;border-top:1px solid #EEF2F8;display:flex">
+                <button onClick="{{ addMember }}" style="height:34px;padding:0 14px;border:1px dashed #B9CDEB;border-radius:9px;background:#FFFFFF;color:#1F7FF0;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#F3F7FE">+ Teamlid</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isQuarter }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px">
+              <button onClick="{{ prevQ }}" style="width:34px;height:34px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;cursor:pointer;font-size:16px">‹</button>
+              <span style="font-size:16px;font-weight:700;min-width:96px;text-align:center">{{ qLabel }}</span>
+              <button onClick="{{ nextQ }}" style="width:34px;height:34px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;cursor:pointer;font-size:16px">›</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;font-size:12px;color:#5F6F89;flex-wrap:wrap">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:8px;border-radius:4px;background:#8DA6CF"></span>Ingepland</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:8px;border-radius:4px;border:1.5px dashed #8DA6CF"></span>Nog niet ingepland</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;transform:rotate(45deg);background:#1E2E4B;border-radius:1px"></span>Deadline</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;transform:rotate(45deg);background:#D27466;border-radius:1px"></span>Gepland na deadline</span>
+            </div>
+          </div>
+          <div style="border:1px solid #E3E9F2;border-radius:16px;overflow:hidden;background:#FFFFFF">
+            <div style="display:grid;grid-template-columns:290px minmax(0,1fr);background:#F7F9FD;border-bottom:1px solid #E3E9F2">
+              <div style="padding:12px 16px;font-size:11.5px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:flex-end">Project / werkzaamheid</div>
+              <div style="display:flex;flex-direction:column">
+                <div style="position:relative;height:28px">
+                  <sc-for list="{{ qMonths }}" as="mo">
+                    <div style="position:absolute;top:0;bottom:0;left:{{ mo.left }};width:{{ mo.width }};padding:7px 8px;font-size:12.5px;font-weight:700;border-left:1px solid #E3E9F2">{{ mo.label }}</div>
+                  </sc-for>
+                </div>
+                <div style="display:flex">
+                  <sc-for list="{{ qWeeks }}" as="w">
+                    <div style="flex:1;min-width:0;padding:2px 0 8px;text-align:center;font-size:11px;color:{{ w.color }};font-weight:{{ w.fw }}">{{ w.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <sc-for list="{{ qRows }}" as="q" hint-placeholder-count="6">
+              <sc-if value="{{ q.isProject }}">
+                <div style="display:grid;grid-template-columns:290px minmax(0,1fr);border-top:1px solid #E6ECF4;background:#F9FBFE">
+                  <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;min-width:0">
+                    <span style="width:10px;height:10px;border-radius:3px;flex-shrink:0;background:{{ q.color }}"></span>
+                    <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.label }}</span>
+                    <span style="font-size:12px;color:#7A89A3;flex-shrink:0">{{ q.sub }}</span>
+                  </div>
+                  <div style="position:relative;min-height:44px;background-image:{{ gridBg }}">
+                    <sc-if value="{{ todayIn }}"><div style="position:absolute;top:0;bottom:0;width:2px;left:{{ todayLeft }};background:rgba(31,127,240,0.35)"></div></sc-if>
+                    <sc-if value="{{ q.hasBar }}"><div style="position:absolute;top:17px;height:10px;border-radius:5px;left:{{ q.left }};width:{{ q.width }};background:{{ q.color }}"></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ q.isItem }}">
+                <div onClick="{{ q.onClick }}" style="display:grid;grid-template-columns:290px minmax(0,1fr);border-top:1px solid #F0F3F8;cursor:pointer;opacity:{{ q.opacity }}" style-hover="background:#F7FAFF">
+                  <div style="padding:8px 16px 8px 36px;display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.label }}</span>
+                    <span style="font-size:11.5px;color:#7A89A3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.sub }}</span>
+                  </div>
+                  <div style="position:relative;min-height:44px;background-image:{{ gridBg }}">
+                    <sc-if value="{{ todayIn }}"><div style="position:absolute;top:0;bottom:0;width:2px;left:{{ todayLeft }};background:rgba(31,127,240,0.35)"></div></sc-if>
+                    <sc-if value="{{ q.hasBar }}"><div style="position:absolute;top:15px;height:14px;border-radius:7px;left:{{ q.left }};width:{{ q.width }};background:{{ q.barBg }};border:{{ q.barBorder }}"></div></sc-if>
+                    <sc-if value="{{ q.hasDue }}"><div title="{{ q.dueTitle }}" style="position:absolute;top:16px;left:{{ q.dueLeft }};width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:{{ q.dueColor }};border:2px solid #FFFFFF;border-radius:2px"></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+            </sc-for>
+            <sc-if value="{{ qEmpty }}"><div style="padding:40px;text-align:center;font-size:14px;color:#5F6F89">Geen projecten met planning of deadlines in dit kwartaal.</div></sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isTeam }}">
+        <div style="display:flex;flex-direction:column;gap:40px;max-width:1240px">
+          <section style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <h2 style="margin:0;font-size:18px;font-weight:700">Team</h2>
+              <button onClick="{{ addMember }}" style="height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:13.5px;cursor:pointer" style-hover="background:#F5F8FD">+ Teamlid</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">
+              <sc-for list="{{ teamCards }}" as="t" hint-placeholder-count="3">
+                <div style="background:#ECF2FD;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:center;gap:12px">
+                    <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;background:{{ t.color }};color:#FFFFFF;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ t.initials }}</span>
+                    <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                      <span style="font-size:15px;font-weight:700">{{ t.name }}</span>
+                      <span style="font-size:13px;color:#5F6F89">{{ t.role }}</span>
+                    </div>
+                    <button onClick="{{ t.menu }}" title="Opties" style="width:30px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:16px;font-weight:700;color:#5F6F89" style-hover="background:#FFFFFF">⋯</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px">
+                    <span style="color:#5F6F89">Uren</span><span style="font-weight:600">{{ t.hours }}</span>
+                    <span style="color:#5F6F89">Werkdagen</span><span>{{ t.days }}</span>
+                    <span style="color:#5F6F89">Type</span><span>{{ t.type }}</span>
+                    <span style="color:#5F6F89">Vrij</span><span>{{ t.vac }}</span>
+                  </div>
+                  <button onClick="{{ t.edit }}" style="align-self:flex-start;height:32px;padding:0 14px;border:0;border-radius:9px;background:#FFFFFF;font-weight:600;font-size:13px;cursor:pointer;box-shadow:0 1px 2px rgba(30,46,75,0.08)">Bewerken</button>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ hasArchived }}">
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                <span style="font-size:12px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em">Gearchiveerd</span>
+                <sc-for list="{{ archived }}" as="a">
+                  <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid #E3E9F2;border-radius:12px">
+                    <span style="width:28px;height:28px;border-radius:50%;background:#C5CFDF;color:#FFFFFF;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ a.initials }}</span>
+                    <span style="flex:1;font-size:14px;color:#5F6F89">{{ a.name }} · {{ a.role }}</span>
+                    <button onClick="{{ a.restore }}" style="border:0;background:transparent;color:#1F7FF0;font-weight:600;font-size:13px;cursor:pointer">Terugzetten</button>
+                    <button onClick="{{ a.remove }}" style="border:0;background:transparent;color:#B5493C;font-weight:600;font-size:13px;cursor:pointer">Verwijderen</button>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </section>
+
+          <section style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <h2 style="margin:0;font-size:18px;font-weight:700">Capaciteit komende 8 weken</h2>
+              <p style="margin:0;font-size:13.5px;color:#5F6F89">Bezetting inclusief terugkerende taken en vrije dagen.</p>
+            </div>
+            <div style="border:1px solid #E3E9F2;border-radius:16px;overflow-x:auto">
+              <div style="display:grid;grid-template-columns:200px repeat(8,minmax(92px,1fr));min-width:940px">
+                <div style="padding:10px 14px;background:#F7F9FD;font-size:11.5px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em">Teamlid</div>
+                <sc-for list="{{ capWeeks }}" as="w"><div style="padding:10px 12px;background:#F7F9FD;font-size:12.5px;font-weight:700;color:{{ w.color }}">{{ w.label }}</div></sc-for>
+                <sc-for list="{{ capRows }}" as="r">
+                  <div style="padding:12px 14px;border-top:1px solid #EEF2F8;display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.color }}"></span>{{ r.name }}</div>
+                  <sc-for list="{{ r.cells }}" as="c">
+                    <div title="{{ c.title }}" style="padding:12px;border-top:1px solid #EEF2F8;display:flex;flex-direction:column;gap:5px">
+                      <span style="font-size:13px;font-weight:700;color:{{ c.fg }}">{{ c.label }}</span>
+                      <div style="height:5px;border-radius:99px;background:#E6ECF5;overflow:hidden"><div style="height:100%;border-radius:99px;width:{{ c.pct }};background:{{ c.color }}"></div></div>
+                    </div>
+                  </sc-for>
+                </sc-for>
+              </div>
+            </div>
+          </section>
+
+          <section style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <h2 style="margin:0;font-size:18px;font-weight:700">Terugkerende taken</h2>
+                <p style="margin:0;font-size:13.5px;color:#5F6F89">Deze taken blokken automatisch capaciteit in de weekplanning.</p>
+              </div>
+              <button onClick="{{ addRecurring }}" style="height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:13.5px;cursor:pointer" style-hover="background:#F5F8FD">+ Terugkerende taak</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ recurring }}" as="r">
+                <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:minmax(0,1fr) 120px 70px 200px;gap:16px;align-items:center;padding:12px 16px;border:1px solid #E3E9F2;border-radius:12px;cursor:pointer" style-hover="border-color:#B9CDEB">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:14px;font-weight:600">{{ r.title }}</span><span style="font-size:12.5px;color:#5F6F89">{{ r.project }}</span></div>
+                  <span style="font-size:13px;color:#3A4A66">{{ r.freq }}</span>
+                  <span style="font-size:14px;font-weight:700">{{ r.hours }}</span>
+                  <span style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:24px;height:24px;border-radius:50%;background:{{ r.color }};color:#FFFFFF;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ r.initials }}</span>{{ r.person }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ recurringEmpty }}"><div style="padding:22px;border:1px dashed #D9E2EF;border-radius:12px;font-size:13.5px;color:#5F6F89;text-align:center">Nog geen vaste taken. Denk aan rapportages of de wekelijkse social-planning.</div></sc-if>
+            </div>
+          </section>
+
+          <section style="background:#ECF2FD;border-radius:16px;padding:20px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <h3 style="margin:0;font-size:15px;font-weight:700">Demo-data</h3>
+              <p style="margin:0;font-size:13.5px;color:#5F6F89">{{ demoText }}</p>
+            </div>
+            <sc-if value="{{ hasDemo }}"><button onClick="{{ clearDemo }}" style="height:36px;padding:0 14px;border:1px solid #E7C3BC;border-radius:10px;background:#FFFFFF;color:#9A3E33;font-weight:600;font-size:13.5px;cursor:pointer">Demo-data wissen</button></sc-if>
+            <sc-if value="{{ noDemo }}"><button onClick="{{ loadDemo }}" style="height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:13.5px;cursor:pointer">Demo-data laden</button></sc-if>
+          </section>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+
+  <sc-if value="{{ warnOpen }}"><div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:44"></div></sc-if>
+
+  <sc-if value="{{ panelOpen }}">
+    <div onClick="{{ p.close }}" style="position:fixed;inset:0;background:rgba(30,46,75,0.18);z-index:50"></div>
+    <aside style="position:fixed;top:0;right:0;bottom:0;width:min(470px,100vw);background:#FFFFFF;z-index:51;box-shadow:-12px 0 40px rgba(30,46,75,0.14);display:flex;flex-direction:column">
+      <div style="padding:16px 22px;border-bottom:1px solid #E3E9F2;display:flex;align-items:center;gap:8px">
+        <span style="font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:6px;border:1px solid #D4DEEE;color:#3A4A66">{{ p.src }}</span>
+        <sc-if value="{{ p.isJira }}"><a href="{{ p.jiraUrl }}" target="_blank" rel="noopener" style="font-size:13px;font-weight:700">{{ p.key }}</a></sc-if>
+        <sc-if value="{{ p.isNew }}"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#1F7FF0;color:#FFFFFF">Nieuw</span></sc-if>
+        <sc-if value="{{ p.isClosed }}"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#F7E1DC;color:#9A3E33">Gesloten in Jira</span></sc-if>
+        <div style="flex:1"></div>
+        <button onClick="{{ p.close }}" title="Sluiten" style="width:32px;height:32px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:20px;color:#5F6F89" style-hover="background:#ECF2FD">×</button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:18px 22px 24px;display:flex;flex-direction:column;gap:20px">
+        <textarea value="{{ p.v.title }}" onChange="{{ p.on.title }}" rows="2" style="font-size:20px;font-weight:700;border:0;resize:none;padding:4px 0;line-height:1.3;width:100%;letter-spacing:-0.01em"></textarea>
+        <sc-if value="{{ p.hasWarnings }}">
+          <div style="background:#FDF5F3;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ p.warnings }}" as="w"><div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#9A3E33;font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:#D27466"></span>{{ w.t }}</div></sc-for>
+          </div>
+        </sc-if>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66;grid-column:1 / -1">Project
+            <select value="{{ p.v.project }}" onChange="{{ p.on.project }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ p.projectEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Status
+            <select value="{{ p.v.status }}" onChange="{{ p.on.status }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ statusEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Prioriteit
+            <select value="{{ p.v.priority }}" onChange="{{ p.on.priority }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ prioEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Toegewezen aan
+            <select value="{{ p.v.assignee }}" onChange="{{ p.on.assignee }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ assigneeEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Geschatte tijd (uren)
+            <input type="number" min="0" step="0.5" value="{{ p.v.estimate }}" onChange="{{ p.on.estimate }}" placeholder="Nog niet ingeschat" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Startdatum
+            <input type="date" value="{{ p.v.start }}" onChange="{{ p.on.start }}" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Deadline
+            <input type="date" value="{{ p.v.due }}" onChange="{{ p.on.due }}" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Markt
+            <select value="{{ p.v.market }}" onChange="{{ p.on.market }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ marketEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Kanaal
+            <select value="{{ p.v.channel }}" onChange="{{ p.on.channel }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ channelEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Aanvrager
+            <input value="{{ p.v.requesterName }}" onChange="{{ p.on.requesterName }}" placeholder="Naam van de aanvrager" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Afdeling
+            <select value="{{ p.v.requester }}" onChange="{{ p.on.requester }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ reqEls }}</select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Terugkerend
+            <select value="{{ p.v.recurring }}" onChange="{{ p.on.recurring }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ recurEls }}</select>
+          </label>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+            <span style="font-size:15px;font-weight:700">Planning</span>
+            <span style="font-size:12.5px;color:#5F6F89;font-weight:600">{{ p.plannedLabel }}</span>
+          </div>
+          <sc-if value="{{ p.isRecurring }}"><p style="margin:0;font-size:13.5px;color:#3A4A66;line-height:1.5;background:#ECF2FD;border-radius:12px;padding:12px 14px">{{ p.recurText }}</p></sc-if>
+          <sc-if value="{{ p.notRecurring }}">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ p.allocs }}" as="a">
+                <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 70px 30px;gap:6px;align-items:center">
+                  <select value="{{ a.m }}" onChange="{{ a.onM }}" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;font-size:13px">{{ memberEls }}</select>
+                  <select value="{{ a.w }}" onChange="{{ a.onW }}" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;background:#FFFFFF;font-size:13px">{{ weekEls }}</select>
+                  <input type="number" min="0" step="0.5" value="{{ a.h }}" onChange="{{ a.onH }}" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;font-size:13px;width:100%">
+                  <button onClick="{{ a.remove }}" title="Verwijder" style="width:30px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:#7A89A3;font-size:17px" style-hover="background:#FDF5F3;color:#B5493C">×</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ p.noAllocs }}"><span style="font-size:13px;color:#5F6F89">Nog niet ingepland. Sleep het in de weekplanning of verdeel de uren hieronder.</span></sc-if>
+              <button onClick="{{ p.addAlloc }}" style="align-self:flex-start;border:0;background:transparent;color:#1F7FF0;font-weight:600;font-size:13px;cursor:pointer;padding:4px 0">+ Week toevoegen</button>
+              <div style="background:#ECF2FD;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:12.5px;font-weight:600;color:#3A4A66">{{ p.sp.label }}</span>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,0.9fr) auto;gap:6px">
+                  <select value="{{ p.sp.m }}" onChange="{{ p.sp.onM }}" style="height:34px;padding:0 6px;border:1px solid #D4DEEE;border-radius:9px;background:#FFFFFF;font-size:12.5px">{{ memberEls }}</select>
+                  <select value="{{ p.sp.w }}" onChange="{{ p.sp.onW }}" style="height:34px;padding:0 6px;border:1px solid #D4DEEE;border-radius:9px;background:#FFFFFF;font-size:12.5px">{{ weekEls }}</select>
+                  <select value="{{ p.sp.n }}" onChange="{{ p.sp.onN }}" style="height:34px;padding:0 6px;border:1px solid #D4DEEE;border-radius:9px;background:#FFFFFF;font-size:12.5px">{{ nEls }}</select>
+                  <button onClick="{{ p.sp.go }}" style="height:34px;padding:0 12px;border:0;border-radius:9px;background:#1E2E4B;color:#FFFFFF;font-weight:600;font-size:12.5px;cursor:pointer">Verdeel</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:15px;font-weight:700">Notitie
+          <textarea value="{{ p.v.note }}" onChange="{{ p.on.note }}" rows="3" placeholder="Context, links of afspraken" style="padding:10px 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:400;resize:vertical;line-height:1.5"></textarea>
+        </label>
+
+        <sc-if value="{{ p.isJira }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;font-weight:700">Uit Jira</span>
+            <div style="display:grid;grid-template-columns:120px 1fr;gap:7px 12px;font-size:13px">
+              <span style="color:#5F6F89">Issue type</span><span>{{ p.jira.type }}</span>
+              <span style="color:#5F6F89">Jira-status</span><span>{{ p.jira.status }}</span>
+              <span style="color:#5F6F89">Reporter</span><span>{{ p.jira.reporter }}</span>
+              <span style="color:#5F6F89">Aangemaakt</span><span>{{ p.jira.created }}</span>
+              <span style="color:#5F6F89">Labels</span><span>{{ p.jira.labels }}</span>
+              <span style="color:#5F6F89">Components</span><span>{{ p.jira.components }}</span>
+              <span style="color:#5F6F89">Epic / parent</span><span>{{ p.jira.epic }}</span>
+            </div>
+            <span style="font-size:12px;color:#7A89A3">Jira-velden worden bij elke sync bijgewerkt. Je planning blijft staan.</span>
+          </div>
+        </sc-if>
+      </div>
+      <div style="padding:14px 22px;border-top:1px solid #E3E9F2;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <sc-if value="{{ p.isJira }}"><a href="{{ p.jiraUrl }}" target="_blank" rel="noopener" style="height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;display:flex;align-items:center;font-weight:600;font-size:13.5px;color:#1E2E4B">Open in Jira ↗</a></sc-if>
+        <sc-if value="{{ p.isManual }}"><button onClick="{{ p.convert }}" style="height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:13.5px;cursor:pointer" style-hover="background:#F5F8FD">Omzetten naar Jira-ticket</button></sc-if>
+        <div style="flex:1"></div>
+        <sc-if value="{{ p.isJira }}"><button onClick="{{ p.unplan }}" style="border:0;background:transparent;color:#5F6F89;font-weight:600;font-size:13.5px;cursor:pointer">Uit planning halen</button></sc-if>
+        <sc-if value="{{ p.isManual }}"><button onClick="{{ p.remove }}" style="border:0;background:transparent;color:#B5493C;font-weight:600;font-size:13.5px;cursor:pointer">Verwijderen</button></sc-if>
+      </div>
+    </aside>
+  </sc-if>
+
+  <sc-if value="{{ taskOpen }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(30,46,75,0.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stop }}" style="width:min(640px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#FFFFFF;border-radius:20px;box-shadow:0 24px 60px rgba(30,46,75,0.25);display:flex;flex-direction:column">
+        <div style="padding:22px 24px 4px;display:flex;flex-direction:column;gap:4px">
+          <h2 style="margin:0;font-size:20px;font-weight:700">{{ fo.heading }}</h2>
+          <p style="margin:0;font-size:13.5px;color:#5F6F89">Alleen project, werkzaamheid en uren zijn verplicht. De rest kan later.</p>
+        </div>
+        <div style="padding:18px 24px;display:flex;flex-direction:column;gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Project *
+            <select value="{{ fo.v.project }}" onChange="{{ fo.on.project }}" style="height:40px;padding:0 10px;border:1px solid {{ fo.err.projectBorder }};border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ fo.projectEls }}</select>
+            <sc-if value="{{ fo.isNewProject }}"><input value="{{ fo.v.newProject }}" onChange="{{ fo.on.newProject }}" placeholder="Naam van het nieuwe project" style="height:40px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500"></sc-if>
+            <sc-if value="{{ fo.err.hasProject }}"><span style="color:#B5493C;font-size:12px">{{ fo.err.project }}</span></sc-if>
+          </label>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Werkzaamheid *
+              <input value="{{ fo.v.title }}" onChange="{{ fo.on.title }}" placeholder="Bijv. Nieuwsbrief december NL" style="height:40px;padding:0 12px;border:1px solid {{ fo.err.titleBorder }};border-radius:10px;font-size:14px;font-weight:500">
+              <sc-if value="{{ fo.err.hasTitle }}"><span style="color:#B5493C;font-size:12px">{{ fo.err.title }}</span></sc-if>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Geschatte tijd (uren) *
+              <input type="number" min="0" step="0.5" value="{{ fo.v.estimate }}" onChange="{{ fo.on.estimate }}" placeholder="8" style="height:40px;padding:0 12px;border:1px solid {{ fo.err.estimateBorder }};border-radius:10px;font-size:14px;font-weight:500">
+              <sc-if value="{{ fo.err.hasEstimate }}"><span style="color:#B5493C;font-size:12px">{{ fo.err.estimate }}</span></sc-if>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px"><span style="font-size:11.5px;font-weight:700;color:#7A89A3;text-transform:uppercase;letter-spacing:0.06em">Optioneel</span><span style="flex:1;height:1px;background:#E6ECF4"></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Toegewezen aan
+              <select value="{{ fo.v.assignee }}" onChange="{{ fo.on.assignee }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ assigneeEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Week
+              <select value="{{ fo.v.week }}" onChange="{{ fo.on.week }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ weekPickEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Startdatum
+              <input type="date" value="{{ fo.v.start }}" onChange="{{ fo.on.start }}" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Deadline
+              <input type="date" value="{{ fo.v.due }}" onChange="{{ fo.on.due }}" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Prioriteit
+              <select value="{{ fo.v.priority }}" onChange="{{ fo.on.priority }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ prioEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Markt
+              <select value="{{ fo.v.market }}" onChange="{{ fo.on.market }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ marketEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Kanaal
+              <select value="{{ fo.v.channel }}" onChange="{{ fo.on.channel }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ channelEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Aanvrager
+              <input value="{{ fo.v.requesterName }}" onChange="{{ fo.on.requesterName }}" placeholder="Bijv. Sanne de Wit" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Afdeling
+              <select value="{{ fo.v.requester }}" onChange="{{ fo.on.requester }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ reqEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Status
+              <select value="{{ fo.v.status }}" onChange="{{ fo.on.status }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ statusEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Terugkerend
+              <select value="{{ fo.v.recurring }}" onChange="{{ fo.on.recurring }}" style="height:38px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;font-weight:500">{{ recurEls }}</select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66;grid-column:1 / -1">Notitie
+              <textarea value="{{ fo.v.note }}" onChange="{{ fo.on.note }}" rows="2" placeholder="Context of links" style="padding:10px 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:400;resize:vertical"></textarea>
+            </label>
+          </div>
+        </div>
+        <div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #EEF2F8">
+          <button onClick="{{ closeModal }}" style="height:40px;padding:0 16px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer">Annuleren</button>
+          <button onClick="{{ fo.save }}" style="height:40px;padding:0 18px;border:0;border-radius:10px;background:#1F7FF0;color:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#1767C4">Taak toevoegen</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ memberOpen }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(30,46,75,0.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stop }}" style="width:min(580px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#FFFFFF;border-radius:20px;box-shadow:0 24px 60px rgba(30,46,75,0.25);display:flex;flex-direction:column">
+        <div style="padding:22px 24px 4px;display:flex;align-items:center;gap:14px">
+          <span style="width:44px;height:44px;border-radius:50%;background:{{ mf.color }};color:#FFFFFF;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center">{{ mf.initials }}</span>
+          <h2 style="margin:0;font-size:20px;font-weight:700">{{ mf.heading }}</h2>
+        </div>
+        <div style="padding:18px 24px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Naam *
+              <input value="{{ mf.name }}" onChange="{{ mf.onName }}" placeholder="Voor- en achternaam" style="height:40px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+              <sc-if value="{{ mf.hasErr }}"><span style="color:#B5493C;font-size:12px">{{ mf.err }}</span></sc-if>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Rol
+              <input value="{{ mf.role }}" onChange="{{ mf.onRole }}" placeholder="Bijv. Content marketeer" style="height:40px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Initialen
+              <input value="{{ mf.initials }}" onChange="{{ mf.onInit }}" style="height:40px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Uren per week
+              <input type="number" min="0" step="1" value="{{ mf.hours }}" onChange="{{ mf.onHours }}" style="height:40px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12.5px;font-weight:600;color:#3A4A66">Kleur</span>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <sc-for list="{{ mf.colors }}" as="c"><button onClick="{{ c.pick }}" style="width:28px;height:28px;border-radius:50%;border:0;cursor:pointer;background:{{ c.c }};box-shadow:{{ c.ring }}"></button></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12.5px;font-weight:600;color:#3A4A66">Werkdagen <span style="font-weight:500;color:#7A89A3">{{ mf.perDay }}</span></span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ mf.days }}" as="d"><button onClick="{{ d.toggle }}" style="width:44px;height:36px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;border:1px solid {{ d.border }};background:{{ d.bg }};color:{{ d.fg }}">{{ d.label }}</button></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12.5px;font-weight:600;color:#3A4A66">Type</span>
+            <div style="display:flex;background:#ECF2FD;border-radius:10px;padding:3px;gap:2px;align-self:flex-start">
+              <sc-for list="{{ mf.types }}" as="t"><button onClick="{{ t.pick }}" style="border:0;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;background:{{ t.bg }};color:{{ t.fg }};box-shadow:{{ t.shadow }}">{{ t.label }}</button></sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12.5px;font-weight:600;color:#3A4A66">Vrije dagen en vakantie</span>
+            <sc-for list="{{ mf.vacs }}" as="v">
+              <div style="display:grid;grid-template-columns:1fr 1fr minmax(0,1fr) 30px;gap:6px;align-items:center">
+                <input type="date" value="{{ v.from }}" onChange="{{ v.onFrom }}" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;font-size:13px">
+                <input type="date" value="{{ v.to }}" onChange="{{ v.onTo }}" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;font-size:13px">
+                <input value="{{ v.label }}" onChange="{{ v.onLabel }}" placeholder="Omschrijving" style="height:36px;padding:0 8px;border:1px solid #D9E2EF;border-radius:9px;font-size:13px">
+                <button onClick="{{ v.remove }}" style="width:30px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;color:#7A89A3;font-size:17px">×</button>
+              </div>
+            </sc-for>
+            <sc-if value="{{ mf.noVacs }}"><span style="font-size:13px;color:#5F6F89">Geen vrije dagen gepland.</span></sc-if>
+            <button onClick="{{ mf.addVac }}" style="align-self:flex-start;border:0;background:transparent;color:#1F7FF0;font-weight:600;font-size:13px;cursor:pointer;padding:2px 0">+ Periode toevoegen</button>
+          </div>
+        </div>
+        <div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #EEF2F8">
+          <button onClick="{{ closeModal }}" style="height:40px;padding:0 16px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer">Annuleren</button>
+          <button onClick="{{ mf.save }}" style="height:40px;padding:0 18px;border:0;border-radius:10px;background:#1F7FF0;color:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer" style-hover="background:#1767C4">Opslaan</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ delOpen }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(30,46,75,0.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stop }}" style="width:min(500px,100%);background:#FFFFFF;border-radius:20px;box-shadow:0 24px 60px rgba(30,46,75,0.25);display:flex;flex-direction:column">
+        <div style="padding:22px 24px 6px;display:flex;flex-direction:column;gap:8px">
+          <h2 style="margin:0;font-size:20px;font-weight:700">{{ del.name }} verwijderen?</h2>
+          <p style="margin:0;font-size:14px;color:#5F6F89;line-height:1.5">{{ del.summary }}</p>
+        </div>
+        <sc-if value="{{ del.hasTasks }}">
+          <div style="padding:12px 24px;display:flex;flex-direction:column;gap:8px">
+            <button onClick="{{ del.pickInbox }}" style="display:flex;gap:12px;align-items:flex-start;text-align:left;padding:14px;border-radius:12px;cursor:pointer;background:#FFFFFF;border:1.5px solid {{ del.inboxBorder }}">
+              <span style="width:18px;height:18px;border-radius:50%;border:2px solid #9FB0CC;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:{{ del.inboxDot }}"></span></span>
+              <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Terug naar de inbox</span><span style="font-size:12.5px;color:#5F6F89">De taken staan weer klaar om in te plannen.</span></span>
+            </button>
+            <sc-if value="{{ del.canMove }}">
+              <button onClick="{{ del.pickMove }}" style="display:flex;gap:12px;align-items:flex-start;text-align:left;padding:14px;border-radius:12px;cursor:pointer;background:#FFFFFF;border:1.5px solid {{ del.moveBorder }}">
+                <span style="width:18px;height:18px;border-radius:50%;border:2px solid #9FB0CC;flex-shrink:0;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:{{ del.moveDot }}"></span></span>
+                <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Overzetten naar een ander teamlid</span><span style="font-size:12.5px;color:#5F6F89">Uren en weken blijven hetzelfde.</span></span>
+              </button>
+              <sc-if value="{{ del.isMove }}">
+                <select value="{{ del.to }}" onChange="{{ del.onTo }}" style="height:40px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:14px;margin-left:44px">{{ del.els }}</select>
+              </sc-if>
+            </sc-if>
+          </div>
+        </sc-if>
+        <div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px">
+          <button onClick="{{ closeModal }}" style="height:40px;padding:0 16px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer">Annuleren</button>
+          <button onClick="{{ del.confirm }}" style="height:40px;padding:0 18px;border:0;border-radius:10px;background:#C4564A;color:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer">Verwijderen</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ settingsOpen }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(30,46,75,0.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stop }}" style="width:min(640px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#FFFFFF;border-radius:20px;box-shadow:0 24px 60px rgba(30,46,75,0.25);display:flex;flex-direction:column">
+        <div style="padding:22px 24px 4px;display:flex;flex-direction:column;gap:4px">
+          <h2 style="margin:0;font-size:20px;font-weight:700">Jira-koppeling</h2>
+          <p style="margin:0;font-size:13.5px;color:#5F6F89">Bepaal welke tickets in de intake-inbox binnenkomen.</p>
+        </div>
+        <div style="padding:18px 24px;display:flex;flex-direction:column;gap:16px">
+          <div style="background:#ECF2FD;border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+            <span style="width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;background:{{ st.dot }}"></span>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+              <span style="font-size:14px;font-weight:700">{{ st.statusTitle }}</span>
+              <span style="font-size:13px;color:#3A4A66;line-height:1.5">{{ st.statusText }}</span>
+              <span style="font-size:12.5px;color:#5F6F89">Laatst gesynchroniseerd om {{ syncTime }}</span>
+            </div>
+            <button onClick="{{ syncNow }}" style="height:34px;padding:0 14px;border:0;border-radius:9px;background:#1F7FF0;color:#FFFFFF;font-weight:600;font-size:13px;cursor:pointer;flex-shrink:0">{{ syncBtn }}</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Jira-site
+              <input value="{{ st.site }}" onChange="{{ st.onSite }}" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66">Project(en)
+              <input value="{{ st.projects }}" onChange="{{ st.onProjects }}" placeholder="MKT, WEB" style="height:38px;padding:0 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:14px;font-weight:500">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#3A4A66;grid-column:1 / -1">JQL-filter
+              <textarea value="{{ st.jql }}" onChange="{{ st.onJql }}" rows="2" style="padding:10px 12px;border:1px solid #D9E2EF;border-radius:10px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical"></textarea>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <button onClick="{{ st.toggleAuto }}" style="display:flex;align-items:center;gap:10px;border:0;background:transparent;cursor:pointer;padding:0;font-size:14px;font-weight:600">
+              <span style="width:38px;height:22px;border-radius:999px;position:relative;background:{{ st.autoBg }}"><span style="position:absolute;top:3px;left:{{ st.knob }};width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,0.2)"></span></span>
+              Automatisch verversen
+            </button>
+            <select value="{{ st.interval }}" onChange="{{ st.onInterval }}" style="height:36px;padding:0 10px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-size:13.5px">{{ st.intervalEls }}</select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:12.5px;font-weight:600;color:#3A4A66">Velden die worden opgehaald</span>
+            <span style="font-size:12.5px;color:#5F6F89;line-height:1.6">Issue key, Summary, Issue Type, Status, Priority, Assignee, Reporter, Created, Due date, Original Estimate, Labels, Components, Epic/Parent. Matching gebeurt op Issue key: je planning blijft staan, alleen Jira-velden worden bijgewerkt.</span>
+          </div>
+          <div style="border:1px dashed #C9D6EA;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:14px;font-weight:700">Import via Jira CSV-export</span>
+              <span style="font-size:13px;color:#5F6F89">Werkt de live koppeling niet? Exporteer je filter in Jira als CSV en upload het hier. Dezelfde matchinglogica.</span>
+            </div>
+            <label style="align-self:flex-start;height:36px;padding:0 14px;border:1px solid #D9E2EF;border-radius:10px;background:#FFFFFF;font-weight:600;font-size:13.5px;cursor:pointer;display:flex;align-items:center">CSV-bestand kiezen<input type="file" accept=".csv,text/csv" onChange="{{ st.onCsv }}" style="display:none"></label>
+            <sc-if value="{{ st.hasCsvMsg }}"><span style="font-size:13px;font-weight:600;color:#1E2E4B">{{ st.csvMsg }}</span></sc-if>
+          </div>
+        </div>
+        <div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #EEF2F8">
+          <button onClick="{{ closeModal }}" style="height:40px;padding:0 18px;border:0;border-radius:10px;background:#1E2E4B;color:#FFFFFF;font-weight:600;font-size:14px;cursor:pointer">Klaar</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ menuOpen }}">
+    <div onClick="{{ closeMenus }}" style="position:fixed;inset:0;z-index:70"></div>
+    <div style="position:fixed;z-index:71;left:{{ menu.left }};top:{{ menu.top }};width:180px;background:#FFFFFF;border:1px solid #E3E9F2;border-radius:12px;box-shadow:0 14px 36px rgba(30,46,75,0.18);padding:6px;display:flex;flex-direction:column">
+      <button onClick="{{ menu.edit }}" style="text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer" style-hover="background:#F3F7FE">Bewerken</button>
+      <button onClick="{{ menu.archive }}" style="text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer" style-hover="background:#F3F7FE">{{ menu.archiveLabel }}</button>
+      <button onClick="{{ menu.remove }}" style="text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;color:#B5493C" style-hover="background:#FDF5F3">Verwijderen</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1E2E4B;color:#FFFFFF;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 10px 30px rgba(30,46,75,0.3);z-index:90;animation:zbToast 0.25s ease-out;max-width:80vw">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;weeksVisible&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:1,&quot;max&quot;:4,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Weekplanning&quot;},&quot;fullThreshold&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:85,&quot;min&quot;:60,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Weekplanning&quot;}}">
+const KEY='zibber-planning-v1';
+const NL_M=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+const NL_MF=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
+const DAYS=['ma','di','wo','do','vr','za','zo'];
+const PRIO={Hoog:0,Normaal:1,Laag:2};
+const PCOL={Hoog:'#D27466',Normaal:'#8FA3C4',Laag:'#C9D3E3'};
+const CHANNELS=['e-mail','LinkedIn','website','SEO','events','sales-support','content'];
+const MARKETS=['NL','BE','DE','Alle'];
+const REQS=['Sales','Customer Relations','Directie','Marketing','Product'];
+const STATUSES=['To do','Bezig','Review','Klaar'];
+const COLORS=['#2E9C8F','#4F6FD8','#C27A3A','#8E6CC9','#C95F7E','#5E8A3C','#3D8FB8','#7A7F8C'];
+const PROJ_COLORS=['#5B7FD6','#3FA191','#D08B4A','#9B7BD0','#D06F8C','#6E9A4A','#4A9CC4','#B5934A'];
+
+const iso=d=>{const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate());};
+const parse=s=>{if(!s)return null;const [y,m,d]=String(s).slice(0,10).split('-').map(Number);return new Date(y,m-1,d);};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const monday=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());return addDays(x,-((x.getDay()+6)%7));};
+const weekNo=d=>{const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y0)/864e5+1)/7);};
+const fmt=s=>{const d=typeof s==='string'?parse(s):s;return d?d.getDate()+' '+NL_M[d.getMonth()]:'—';};
+const fmtH=h=>{h=Math.round((+h||0)*10)/10;return Number.isInteger(h)?String(h):String(h).replace('.',',');};
+const uid=()=>'i'+Math.random().toString(36).slice(2,9);
+const initialsOf=n=>String(n||'').trim().split(/\s+/).filter(Boolean).map(p=>p[0]).slice(0,2).join('').toUpperCase();
+const hash=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h);};
+const projColor=n=>PROJ_COLORS[hash(n)%PROJ_COLORS.length];
+const DEPT_PERSON={'Marketing':'Wouter Priest','Sales':'Sanne de Wit','Customer Relations':'Lotte Janssen','Directie':'Daan Verhoef','Product':'Jonas Becker'};
+const personOf=i=>i.requesterName||(i.source==='jira'?i.reporter:'')||(i.demo?DEPT_PERSON[i.requester]:'')||'';
+const allocSum=i=>(i.allocations||[]).reduce((t,a)=>t+(+a.h||0),0);
+const wkRange=d=>{const e=addDays(d,4);return d.getMonth()===e.getMonth()?d.getDate()+'–'+e.getDate()+' '+NL_M[e.getMonth()]:fmt(d)+' – '+fmt(e);};
+const opt=list=>list.map(o=>typeof o==='string'?React.createElement('option',{key:o,value:o},o):React.createElement('option',{key:String(o.value),value:o.value},o.label));
+
+const blank=()=>({id:'',source:'manual',key:'',project:'',title:'',type:'',status:'To do',jiraStatus:'',priority:'Normaal',assignee:null,reporter:'',requester:'',requesterName:'',created:iso(new Date()),start:'',due:'',estimate:null,labels:[],components:[],epic:'',market:'NL',channel:'',note:'',recurring:'',isNew:false,jiraClosed:false,allocations:[],demo:false});
+
+const capOf=(m,w)=>{if(!m||!m.workdays||!m.workdays.length)return 0;const per=m.hours/m.workdays.length;let n=0;const st=parse(w);for(let k=0;k<7;k++){if(!m.workdays.includes(k+1))continue;const ds=iso(addDays(st,k));if((m.vacations||[]).some(v=>v.from&&v.from<=ds&&ds<=(v.to||v.from)))continue;n++;}return Math.round(per*n*10)/10;};
+const recurH=(i,w,mId)=>{if(!i.recurring||i.assignee!==mId||i.status==='Klaar'||i.jiraClosed)return 0;if(i.start&&w<iso(monday(parse(i.start))))return 0;const h=i.estimate>0?i.estimate:0;if(i.recurring==='wekelijks')return h;if(i.recurring==='maandelijks')return parse(w).getDate()<=7?h:0;return 0;};
+const inInbox=i=>i.recurring?(!i.assignee&&i.status!=='Klaar'):(i.status!=='Klaar'&&!i.jiraClosed&&(i.estimate>0?allocSum(i)<i.estimate:!(i.allocations||[]).length));
+
+function buildDemo(){
+  const t=new Date();const m0=monday(t);
+  const W=n=>iso(addDays(m0,7*n));const D=n=>iso(addDays(t,n));
+  const members=[
+    {id:'m-vera',name:'Vera Groen',role:'Content marketeer',color:'#2E9C8F',initials:'VG',hours:24,workdays:[1,2,4],type:'intern',vacations:[],archived:false},
+    {id:'m-eva',name:'Eva Velers',role:'Online marketeer',color:'#4F6FD8',initials:'EV',hours:32,workdays:[1,2,3,4],type:'intern',vacations:[{from:W(3),to:iso(addDays(parse(W(3)),4)),label:'Herfstvakantie'}],archived:false},
+    {id:'m-wouter',name:'Wouter Priest',role:'Head of Marketing',color:'#C27A3A',initials:'WP',hours:20,workdays:[1,2,3,4,5],type:'intern',vacations:[],archived:false}];
+  const J=(key,title,project,o)=>({...blank(),id:'d-'+key,source:'jira',key,title,project,epic:project,type:'Task',jiraStatus:'To Do',demo:true,...o});
+  const M=(id,title,project,o)=>({...blank(),id:'d-'+id,source:'manual',title,project,demo:true,requesterName:DEPT_PERSON[o.requester]||'',...o});
+  const items=[
+    J('MKT-214','Landingspagina Zibber Flex BE','Zibber Flex lancering',{type:'Story',jiraStatus:'In Progress',status:'Bezig',priority:'Hoog',assignee:'m-eva',reporter:'Wouter Priest',created:D(-12),due:D(10),estimate:16,market:'BE',channel:'website',requester:'Sales',labels:['BE','website'],components:['Sales'],allocations:[{m:'m-eva',w:W(0),h:8},{m:'m-eva',w:W(1),h:8}]}),
+    J('MKT-219','LinkedIn-campagne makelaars DE','Makelaarscampagne DE',{priority:'Hoog',reporter:'Jonas Becker',created:D(-2),due:D(18),estimate:12,market:'DE',channel:'LinkedIn',requester:'Sales',labels:['DE','LinkedIn'],components:['Sales'],isNew:true}),
+    J('MKT-221','Brochure update pakketten','Merk & content',{reporter:'Sanne de Wit',created:D(-9),due:D(25),estimate:10,market:'Alle',channel:'content',requester:'Sales',labels:['content'],components:['Sales'],assignee:'m-vera',allocations:[{m:'m-vera',w:W(1),h:6}]}),
+    J('MKT-223','Persbericht Zibber Flex NL','Zibber Flex lancering',{reporter:'Wouter Priest',created:D(-6),due:D(7),estimate:4,market:'NL',channel:'content',requester:'Directie',labels:['NL','content'],components:['Directie']}),
+    J('MKT-208',"SEO-audit woningpagina's NL",'Website',{jiraStatus:'In Progress',status:'Bezig',assignee:'m-vera',reporter:'Eva Velers',created:D(-20),due:D(9),estimate:14,market:'NL',channel:'SEO',requester:'Marketing',labels:['NL','SEO'],allocations:[{m:'m-vera',w:W(0),h:6},{m:'m-vera',w:W(2),h:8}]}),
+    J('MKT-225','Intake: banner Vastgoeddag Utrecht','Events Q4',{type:'Intake',priority:'Hoog',reporter:'Lotte Janssen',created:D(-1),due:D(12),estimate:null,market:'NL',channel:'events',requester:'Customer Relations',labels:['NL','events'],components:['Customer Relations'],isNew:true}),
+    J('MKT-226','Intake: salesdeck makelaars BE','Sales-support',{type:'Intake',reporter:'Pieter Claes',created:D(-1),due:D(16),estimate:6,market:'BE',channel:'sales-support',requester:'Sales',labels:['BE','sales-support'],components:['Sales'],isNew:true}),
+    J('MKT-201','Case study Makelaardij Van Dijk','Merk & content',{jiraStatus:'Done',status:'Klaar',jiraClosed:true,assignee:'m-eva',reporter:'Vera Groen',created:D(-30),due:D(3),estimate:8,market:'NL',channel:'content',requester:'Customer Relations',allocations:[{m:'m-eva',w:W(0),h:4},{m:'m-eva',w:W(1),h:4}]}),
+    J('MKT-217','E-mailflow onboarding Zibber Flex','Zibber Flex lancering',{type:'Story',jiraStatus:'In Review',status:'Review',assignee:'m-eva',reporter:'Wouter Priest',created:D(-15),due:D(5),estimate:12,market:'NL',channel:'e-mail',requester:'Product',allocations:[{m:'m-eva',w:W(0),h:12}]}),
+    J('MKT-228','Intake: advertentie Vastgoedmarkt magazine DE','Makelaarscampagne DE',{type:'Intake',priority:'Laag',reporter:'Jonas Becker',created:D(0),due:D(30),estimate:5,market:'DE',channel:'content',requester:'Sales',isNew:true}),
+    J('MKT-210',"Webinar 'Data in de makelaardij'",'Events Q4',{jiraStatus:'In Progress',status:'Bezig',assignee:'m-vera',reporter:'Wouter Priest',created:D(-25),due:D(28),estimate:24,market:'NL',channel:'events',requester:'Marketing',allocations:[{m:'m-vera',w:W(0),h:8},{m:'m-wouter',w:W(1),h:4},{m:'m-vera',w:W(2),h:8}]}),
+    J('MKT-230',"Vertaling productpagina's DE",'Website',{reporter:'Eva Velers',created:D(-4),due:D(21),estimate:8,market:'DE',channel:'website',requester:'Product'}),
+    M('m1','Nieuwsbrief november NL','Nieuwsbrieven',{assignee:'m-vera',due:D(14),estimate:8,market:'NL',channel:'e-mail',requester:'Marketing',status:'Bezig',created:D(-7),allocations:[{m:'m-vera',w:W(0),h:4},{m:'m-vera',w:W(1),h:4}]}),
+    M('m2','Nieuwsbrief november BE','Nieuwsbrieven',{due:D(16),estimate:6,market:'BE',channel:'e-mail',requester:'Marketing',created:D(-7)}),
+    M('m3','Maandrapportage marketing','Rapportage',{assignee:'m-wouter',estimate:4,market:'Alle',channel:'content',requester:'Directie',recurring:'maandelijks',created:D(-60)}),
+    M('m4','Social media-planning','Merk & content',{assignee:'m-vera',estimate:2,market:'Alle',channel:'LinkedIn',requester:'Marketing',recurring:'wekelijks',created:D(-60)}),
+    M('m5','Contentkalender december LinkedIn','Merk & content',{assignee:'m-vera',due:D(8),estimate:6,market:'Alle',channel:'LinkedIn',requester:'Marketing',created:D(-3),allocations:[{m:'m-vera',w:W(0),h:6}]}),
+    M('m6','Standbouw Vastgoeddag Utrecht','Events Q4',{assignee:'m-wouter',due:D(20),estimate:10,market:'NL',channel:'events',requester:'Customer Relations',created:D(-10),allocations:[{m:'m-wouter',w:W(2),h:6},{m:'m-wouter',w:W(3),h:4}]}),
+    M('m7','Klantverhalen video','Merk & content',{priority:'Laag',due:D(45),estimate:12,market:'NL',channel:'content',requester:'Customer Relations',created:D(-5)}),
+    M('m8','Kwartaalplan Q1 2027','Rapportage',{assignee:'m-wouter',priority:'Hoog',due:D(40),estimate:8,market:'Alle',channel:'content',requester:'Directie',created:D(-8),allocations:[{m:'m-wouter',w:W(4),h:8}]}),
+    M('m9','Google Ads-campagne Zibber Flex NL','Zibber Flex lancering',{assignee:'m-eva',due:D(19),estimate:6,market:'NL',channel:'website',requester:'Sales',created:D(-6),allocations:[{m:'m-eva',w:W(2),h:6}]})
+  ];
+  return {members,items,projects:['Zibber Flex lancering','Makelaarscampagne DE','Merk & content','Website','Events Q4','Sales-support','Nieuwsbrieven','Rapportage']};
+}
+
+function POOL(){const t=new Date();const D=n=>iso(addDays(t,n));return [
+  {issue:{key:'MKT-231',summary:'Intake: mailing nieuwe klanten BE',issueType:'Intake',status:'To Do',priority:'High',reporter:'Pieter Claes',created:D(0),due:D(9),estimate:5,labels:['BE','e-mail'],components:['Sales'],epic:'Nieuwsbrieven'}},
+  {issue:{key:'MKT-232',summary:'Intake: one-pager API-koppeling makelaars',issueType:'Intake',status:'To Do',priority:'Medium',reporter:'Lotte Janssen',created:D(0),due:D(15),estimate:null,labels:['NL','content'],components:['Product'],epic:'Merk & content'},close:'MKT-217'},
+  {issue:{key:'MKT-233',summary:'Intake: LinkedIn-posts Zibber Flex DE',issueType:'Intake',status:'To Do',priority:'Medium',reporter:'Jonas Becker',created:D(0),due:D(13),estimate:3,labels:['DE','LinkedIn'],components:['Sales'],epic:'Zibber Flex lancering'}}];}
+
+function fromIssue(is){
+  const labels=is.labels||[],comps=is.components||[];const st=String(is.status||'');
+  const closed=/^(done|closed|gesloten|klaar|resolved|afgerond|cancelled)$/i.test(st.trim());
+  const status=closed?'Klaar':/progress|bezig/i.test(st)?'Bezig':/review/i.test(st)?'Review':'To do';
+  const pr=String(is.priority||'');const priority=/highest|high|hoog|critical|blocker/i.test(pr)?'Hoog':/low|laag/i.test(pr)?'Laag':'Normaal';
+  const mk=labels.map(l=>String(l).toUpperCase()).find(l=>['NL','BE','DE'].includes(l));
+  const ch=CHANNELS.find(c=>labels.some(l=>String(l).toLowerCase()===c.toLowerCase()));
+  const rq=REQS.find(r=>comps.some(c=>String(c).toLowerCase()===r.toLowerCase()));
+  return {key:is.key,title:is.summary||is.key,type:is.issueType||'Task',jiraStatus:st,status,priority,reporter:is.reporter||'',created:is.created||iso(new Date()),due:is.due||'',estimate:is.estimate==null||is.estimate===''||isNaN(is.estimate)?null:Number(is.estimate),labels,components:comps,epic:is.epic||'',project:is.epic||'Zonder project',jiraClosed:closed,_assignee:is.assignee||'',market:mk,channel:ch,requester:rq};
+}
+function parseCSV(t){const first=t.split('\n')[0];const dl=first.split(';').length>first.split(',').length?';':',';const rows=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}else{if(c==='"')q=true;else if(c===dl){row.push(f);f='';}else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}else if(c!=='\r')f+=c;}}if(f||row.length){row.push(f);rows.push(row);}return rows;}
+const EN_M={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,mrt:2,mei:4,okt:9};
+function jd(s){if(!s)return '';let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[1]+'-'+m[2]+'-'+m[3];m=s.match(/(\d{1,2})\/(\w{3})\/(\d{2,4})/);if(m&&EN_M[m[2].toLowerCase()]!=null){let y=+m[3];if(y<100)y+=2000;return iso(new Date(y,EN_M[m[2].toLowerCase()],+m[1]));}m=s.match(/(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{4})/);if(m)return iso(new Date(+m[3],+m[2]-1,+m[1]));const d=new Date(s);return isNaN(d)?'':iso(d);}
+function csvToIssues(text){
+  const rows=parseCSV(text.replace(/^\uFEFF/,''));if(rows.length<2)return [];
+  const h=rows[0].map(x=>x.trim().toLowerCase());
+  const ix=(...n)=>h.findIndex(x=>n.includes(x));const all=(...n)=>h.map((x,i)=>n.includes(x)?i:-1).filter(i=>i>=0);
+  const ki=ix('issue key','key'),si=ix('summary','samenvatting'),ti=ix('issue type'),sti=ix('status'),pi=ix('priority'),ai=ix('assignee'),ri=ix('reporter'),ci=ix('created'),di=ix('due date','due'),ei=ix('original estimate'),li=all('labels'),coi=all('component/s','components'),epi=ix('parent summary','custom field (epic link)','epic link','epic name','parent');
+  if(ki<0)return [];
+  return rows.slice(1).filter(r=>r[ki]&&r[ki].trim()).map(r=>{const g=i=>i>=0?(r[i]||'').trim():'';const est=g(ei);let n=null;if(est){const v=parseFloat(est.replace(',','.'));if(/h/i.test(est))n=v;else if(/d/i.test(est))n=v*8;else if(!isNaN(v))n=v>100?Math.round(v/3600*10)/10:v;}
+    return {key:g(ki),summary:g(si),issueType:g(ti),status:g(sti),priority:g(pi),assignee:g(ai),reporter:g(ri),created:jd(g(ci))||iso(new Date()),due:jd(g(di)),estimate:n,labels:li.map(g).filter(Boolean).flatMap(x=>x.split(/[;,\s]+/)).filter(Boolean),components:coi.map(g).filter(Boolean),epic:g(epi)};});
+}
+
+class Component extends DCLogic {
+  state = this.initState();
+
+  initState(){
+    let d=null;try{d=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+    if(!d||!d.members)d=this.freshData();
+    let view='week';try{view=localStorage.getItem(KEY+'-view')||'week';}catch(e){}
+    return {...d,view,search:'',filters:{source:'',project:'',channel:'',market:'',requester:''},sort:'prio',weekOffset:0,qOffset:0,selected:null,modal:null,form:null,errors:{},mform:null,mErr:'',del:null,menu:null,warnOpen:false,toast:null,hover:null,syncing:false,spread:null,csvMsg:''};
+  }
+  freshData(){const d=buildDemo();return {members:d.members,items:d.items,projects:d.projects,settings:{site:'zibber.atlassian.net',projects:'MKT',jql:'project = MKT AND issuetype = Intake ORDER BY created DESC',interval:5,auto:true,demoSim:true},syncIdx:0,lastSync:new Date().toISOString()};}
+  persist(){const {members,items,projects,settings,syncIdx,lastSync}=this.state;try{localStorage.setItem(KEY,JSON.stringify({members,items,projects,settings,syncIdx,lastSync}));}catch(e){}}
+  componentDidMount(){
+    this.persist();this.schedule();
+    {const s=this.state;this._prev={items:s.items,members:s.members,projects:s.projects,settings:s.settings,lastSync:s.lastSync,syncIdx:s.syncIdx,view:s.view};}
+    this.onStorage=e=>{if(e.key===KEY&&e.newValue){try{const d=JSON.parse(e.newValue);this.setState({members:d.members,items:d.items,projects:d.projects,settings:d.settings,syncIdx:d.syncIdx,lastSync:d.lastSync});}catch(_){}}};
+    this.onKey=e=>{if(e.key==='Escape')this.setState({selected:null,modal:null,menu:null,warnOpen:false});};
+    window.addEventListener('storage',this.onStorage);window.addEventListener('keydown',this.onKey);
+  }
+  componentWillUnmount(){clearInterval(this.timer);window.removeEventListener('storage',this.onStorage);window.removeEventListener('keydown',this.onKey);}
+  componentDidUpdate(){
+    const s=this.state;const ps=this._prev||{};
+    if(['items','members','projects','settings','lastSync','syncIdx'].some(k=>ps[k]!==s[k]))this.persist();
+    if(ps.settings!==s.settings)this.schedule();
+    if(ps.view!==s.view){try{localStorage.setItem(KEY+'-view',s.view);}catch(e){}}
+    this._prev={items:s.items,members:s.members,projects:s.projects,settings:s.settings,lastSync:s.lastSync,syncIdx:s.syncIdx,view:s.view};
+  }
+  schedule(){clearInterval(this.timer);const st=this.state.settings;if(st&&st.auto)this.timer=setInterval(()=>this.sync(false),Math.max(1,+st.interval||5)*60000);}
+  toast(msg){this.setState({toast:msg});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),3400);}
+  updItem(id,patch){this.setState(st=>({items:st.items.map(i=>i.id===id?{...i,...patch}:i)}));}
+  setSetting(k,v){this.setState(st=>({settings:{...st.settings,[k]:v}}));}
+
+  sync(manual){
+    if(this.state.syncing)return;
+    this.setState({syncing:true});
+    setTimeout(()=>{
+      const s=this.state;
+      if(!s.settings.demoSim){this.setState({syncing:false,lastSync:new Date().toISOString()});if(manual)this.toast('Geen live Jira-verbinding. Importeer een CSV-export via Instellingen.');return;}
+      const issues=s.items.filter(i=>i.source==='jira').map(i=>this.toIssue(i));
+      const pool=POOL();let idx=s.syncIdx||0;
+      if(idx<pool.length&&(manual||Math.random()<0.5)){const ex=pool[idx];idx++;issues.push(ex.issue);if(ex.close){const t=issues.find(x=>x.key===ex.close);if(t)t.status='Done';}}
+      const r=this.merge(issues,true);
+      this.setState({syncing:false,syncIdx:idx,lastSync:new Date().toISOString()});
+      if(r.added||r.closed)this.toast([r.added?r.added+(r.added>1?' nieuwe aanvragen':' nieuwe aanvraag')+' uit Jira':'',r.closed?r.closed+' ticket gesloten in Jira':''].filter(Boolean).join(' · '));
+      else if(manual)this.toast('Alles up-to-date. Geen nieuwe aanvragen.');
+    },800);
+  }
+  toIssue(i){const m=this.state.members.find(x=>x.id===i.assignee);return {key:i.key,summary:i.title,issueType:i.type,status:i.jiraStatus||({'To do':'To Do','Bezig':'In Progress','Review':'In Review','Klaar':'Done'})[i.status],priority:({Hoog:'High',Normaal:'Medium',Laag:'Low'})[i.priority],assignee:m?m.name:'',reporter:i.reporter,created:i.created,due:i.due,estimate:i.estimate,labels:i.labels,components:i.components,epic:i.epic};}
+  merge(issues,demo){
+    const s=this.state;const items=s.items.slice();const projects=s.projects.slice();let added=0,updated=0,closed=0;
+    const findM=n=>{if(!n)return null;const m=s.members.find(m=>m.name.toLowerCase()===String(n).toLowerCase());return m?m.id:null;};
+    issues.forEach(is=>{
+      if(!is.key)return;const f=fromIssue(is);const asg=findM(f._assignee);delete f._assignee;
+      if(f.epic&&!projects.includes(f.epic))projects.push(f.epic);
+      const ix=items.findIndex(i=>i.source==='jira'&&i.key===f.key);
+      if(ix>=0){const o=items[ix];const p={...f};if(p.estimate==null)delete p.estimate;['due','market','channel','requester'].forEach(k=>{if(!p[k])delete p[k];});if(!f.epic)delete p.project;if(!o.jiraClosed&&f.jiraClosed)closed++;const n={...o,...p};if(!n.assignee&&asg)n.assignee=asg;items[ix]=n;updated++;}
+      else{if(!projects.includes(f.project))projects.push(f.project);items.unshift({...blank(),...f,market:f.market||'Alle',channel:f.channel||'',requester:f.requester||'',id:uid(),source:'jira',assignee:asg,isNew:true,demo:!!demo});added++;}
+    });
+    this.setState({items,projects});return {added,updated,closed};
+  }
+  onCsv(e){
+    const file=e.target.files&&e.target.files[0];if(!file)return;const rd=new FileReader();
+    rd.onload=()=>{try{const issues=csvToIssues(String(rd.result));if(!issues.length){this.setState({csvMsg:'Geen tickets gevonden. Staat de kolom "Issue key" in de export?'});return;}const r=this.merge(issues,false);this.setState({csvMsg:issues.length+' tickets gelezen: '+r.added+' nieuw, '+r.updated+' bijgewerkt'+(r.closed?', '+r.closed+' gesloten':'')+'.',lastSync:new Date().toISOString()});}catch(err){this.setState({csvMsg:'Dit bestand kon ik niet lezen. Probeer een CSV-export uit Jira.'});}};
+    rd.readAsText(file);e.target.value='';
+  }
+  exportCsv(byId){
+    const s=this.state;const rows=[['Bron','Key/ID','Project','Werkzaamheid','Persoon','Week','Uren']];
+    const wl=w=>{const d=parse(w);const th=addDays(d,3);return th.getFullYear()+'-W'+String(weekNo(d)).padStart(2,'0');};
+    const m0=monday(new Date());
+    s.items.forEach(i=>{const src=i.source==='jira'?'Jira':'Handmatig';const id=i.key||i.id;
+      if(i.recurring){if(!i.assignee)return;for(let k=0;k<8;k++){const w=iso(addDays(m0,7*k));const h=recurH(i,w,i.assignee);if(h)rows.push([src,id,i.project,i.title,(byId[i.assignee]||{}).name||'',wl(w),h]);}}
+      else(i.allocations||[]).forEach(a=>rows.push([src,id,i.project,i.title,(byId[a.m]||{}).name||'',wl(a.w),+a.h||0]));});
+    const csv='\uFEFF'+rows.map(r=>r.map(v=>{const x=typeof v==='number'?String(v).replace('.',','):String(v==null?'':v);return /[;"\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(';')).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='zibber-marketingplanning-'+iso(new Date())+'.csv';document.body.appendChild(a);a.click();a.remove();
+    this.toast('Planning geëxporteerd ('+(rows.length-1)+' regels)');
+  }
+
+  dragStart(e,id,from){this.drag={id,from};try{e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}catch(_){}}
+  dragEnd(){this.drag=null;if(this.state.hover)this.setState({hover:null});}
+  over(key){return e=>{e.preventDefault();if(this.state.hover!==key)this.setState({hover:key});};}
+  dropOn(mId,w){
+    const d=this.drag;this.drag=null;this.setState({hover:null});if(!d)return;
+    const s=this.state;const i=s.items.find(x=>x.id===d.id);const m=s.members.find(x=>x.id===mId);if(!i||!m)return;
+    if(i.recurring){this.updItem(i.id,{assignee:mId,start:i.start||w,isNew:false});this.toast(i.title+' loopt nu bij '+m.name);return;}
+    const al=(i.allocations||[]).map(a=>({...a}));let h;
+    if(d.from){if(d.from.m===mId&&d.from.w===w)return;const ix=al.findIndex(a=>a.m===d.from.m&&a.w===d.from.w);if(ix<0)return;h=+al[ix].h||0;al.splice(ix,1);}
+    else{const est=i.estimate>0?i.estimate:0;h=Math.max(0,est-al.reduce((t,a)=>t+(+a.h||0),0));}
+    const ex=al.find(a=>a.m===mId&&a.w===w);if(ex)ex.h=(+ex.h||0)+h;else al.push({m:mId,w,h});
+    this.updItem(i.id,{allocations:al,assignee:i.assignee||mId,isNew:false});
+    this.toast(i.title+' → '+m.name.split(' ')[0]+', week '+weekNo(parse(w))+(h?' ('+fmtH(h)+'u)':''));
+  }
+  railDrop(e){e.preventDefault();const d=this.drag;this.drag=null;this.setState({hover:null});if(!d||!d.from)return;const i=this.state.items.find(x=>x.id===d.id);if(!i)return;this.updItem(i.id,{allocations:(i.allocations||[]).filter(a=>!(a.m===d.from.m&&a.w===d.from.w))});this.toast(i.title+' staat weer in de inbox');}
+
+  updAlloc(id,ai,patch){const i=this.state.items.find(x=>x.id===id);if(!i)return;this.updItem(id,{allocations:i.allocations.map((a,k)=>k===ai?{...a,...patch}:a)});}
+  removeAlloc(id,ai){const i=this.state.items.find(x=>x.id===id);if(!i)return;this.updItem(id,{allocations:i.allocations.filter((a,k)=>k!==ai)});}
+  addAlloc(id){const s=this.state;const i=s.items.find(x=>x.id===id);if(!i)return;const act=s.members.filter(m=>!m.archived);const al=i.allocations||[];const last=al[al.length-1];const est=i.estimate>0?i.estimate:0;
+    const a={m:last?last.m:(i.assignee||(act[0]&&act[0].id)||''),w:last?iso(addDays(parse(last.w),7)):iso(monday(new Date())),h:Math.max(0,est-allocSum(i))};this.updItem(id,{allocations:[...al,a],assignee:i.assignee||a.m,isNew:false});}
+  spreadItem(id,sp){const i=this.state.items.find(x=>x.id===id);if(!i)return;const est=i.estimate>0?i.estimate:0;if(!est){this.toast('Vul eerst de geschatte uren in.');return;}if(!sp.m){this.toast('Kies eerst een teamlid.');return;}
+    const n=Math.max(1,+sp.n||1);const base=Math.floor(est/n*2)/2;const al=[];for(let k=0;k<n;k++){const h=k===n-1?Math.round((est-base*(n-1))*10)/10:base;if(h>0)al.push({m:sp.m,w:iso(addDays(parse(sp.w),7*k)),h});}
+    this.updItem(id,{allocations:al,assignee:i.assignee||sp.m,isNew:false});this.toast(fmtH(est)+'u verdeeld over '+n+(n===1?' week':' weken'));}
+  convert(id){const s=this.state;const max=s.items.filter(i=>i.source==='jira').reduce((t,i)=>Math.max(t,parseInt(String(i.key).split('-')[1])||0),233);const key='MKT-'+(max+1);
+    this.updItem(id,{source:'jira',key,type:'Task',jiraStatus:({'To do':'To Do','Bezig':'In Progress','Review':'In Review','Klaar':'Done'})[this.state.items.find(i=>i.id===id).status],epic:this.state.items.find(i=>i.id===id).project});this.toast('Omgezet naar '+key+' (gesimuleerd, nog niet in Jira aangemaakt)');}
+
+  openTask(preset){this.setState({modal:'task',errors:{},form:{project:'',newProject:'',title:'',estimate:'',assignee:'',week:'',start:'',due:'',priority:'Normaal',market:'NL',channel:'',requester:'',requesterName:'',status:'To do',recurring:'',note:'',...(preset||{})}});}
+  saveTask(){
+    const f=this.state.form;const errs={};const proj=f.project==='__new'?f.newProject.trim():f.project;
+    if(!proj)errs.project='Kies een project of maak een nieuw project aan.';if(!f.title.trim())errs.title='Wat moet er gebeuren?';
+    const est=parseFloat(String(f.estimate).replace(',','.'));if(!(est>0))errs.estimate='Vul een schatting in uren in.';
+    if(Object.keys(errs).length){this.setState({errors:errs});return;}
+    const it={...blank(),id:uid(),source:'manual',project:proj,title:f.title.trim(),estimate:est,assignee:f.assignee||null,start:f.start||(f.recurring?f.week:''),due:f.due,priority:f.priority,market:f.market,channel:f.channel,requester:f.requester,requesterName:(f.requesterName||'').trim(),status:f.status,recurring:f.recurring,note:f.note};
+    if(!f.recurring&&f.assignee&&f.week)it.allocations=[{m:f.assignee,w:f.week,h:est}];
+    this.setState(st=>({items:[it,...st.items],projects:st.projects.includes(proj)?st.projects:[...st.projects,proj],modal:null,form:null}));
+    this.toast(f.recurring?'Terugkerende taak toegevoegd':it.allocations.length?'Taak toegevoegd en ingepland':'Taak toegevoegd aan de inbox');
+  }
+  openMember(id){const s=this.state;const m=id&&s.members.find(x=>x.id===id);
+    this.setState({modal:'member',mErr:'',mform:m?{...m,vacations:(m.vacations||[]).map(v=>({...v})),initTouched:true}:{id:null,name:'',role:'',color:COLORS[s.members.length%COLORS.length],initials:'',hours:32,workdays:[1,2,3,4,5],type:'intern',vacations:[],initTouched:false}});}
+  setM(patch){this.setState(st=>({mform:{...st.mform,...patch}}));}
+  saveMember(){const f=this.state.mform;if(!f.name.trim()){this.setState({mErr:'Vul een naam in.'});return;}
+    const rec={id:f.id||'m-'+uid(),name:f.name.trim(),role:f.role.trim(),color:f.color,initials:(f.initials||initialsOf(f.name)).slice(0,3),hours:Math.max(0,+f.hours||0),workdays:f.workdays.slice().sort(),type:f.type,vacations:f.vacations.filter(v=>v.from),archived:!!f.archived};
+    this.setState(st=>({members:f.id?st.members.map(m=>m.id===f.id?rec:m):[...st.members,rec],modal:null,mform:null}));this.toast(f.id?'Teamlid bijgewerkt':rec.name+' is toegevoegd aan het team');}
+  archive(id){const m=this.state.members.find(x=>x.id===id);this.setState(st=>({members:st.members.map(x=>x.id===id?{...x,archived:!x.archived}:x),menu:null}));this.toast(m.archived?m.name+' is teruggezet':m.name+' is gearchiveerd');}
+  openDelete(id){const others=this.state.members.filter(m=>!m.archived&&m.id!==id);this.setState({modal:'delete',menu:null,del:{id,mode:'inbox',to:others[0]?others[0].id:''}});}
+  applyDelete(){
+    const {id,mode,to}=this.state.del;const target=mode==='move'&&to&&to!==id?to:null;const m=this.state.members.find(x=>x.id===id);
+    const items=this.state.items.map(i=>{let al=i.allocations||[];let ch=false;
+      if(al.some(a=>a.m===id)){ch=true;if(target){const mg=[];al.forEach(a=>{const b=a.m===id?{...a,m:target}:{...a};const ex=mg.find(x=>x.m===b.m&&x.w===b.w);if(ex)ex.h=(+ex.h)+(+b.h);else mg.push(b);});al=mg;}else al=al.filter(a=>a.m!==id);}
+      if(i.assignee===id)ch=true;return ch?{...i,allocations:al,assignee:i.assignee===id?target:i.assignee}:i;});
+    this.setState(st=>({items,members:st.members.filter(x=>x.id!==id),modal:null,del:null}));
+    this.toast(m.name+' is verwijderd'+(target?'. Taken zijn overgezet.':'. Taken staan weer in de inbox.'));
+  }
+  openMenu(e,id){e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();this.setState(st=>({menu:st.menu&&st.menu.id===id?null:{id,x:r.right,y:r.bottom}}));}
+  clearDemo(){this.setState(st=>({items:st.items.filter(i=>!i.demo),settings:{...st.settings,demoSim:false},selected:null}));this.toast('Demo-data gewist. Tijd voor het echte werk.');}
+  loadDemo(){const d=buildDemo();this.setState(st=>{const ids=new Set(st.members.map(m=>m.id));return {items:[...st.items.filter(i=>!i.demo),...d.items],members:[...st.members,...d.members.filter(m=>!ids.has(m.id))],projects:[...new Set([...st.projects,...d.projects])],settings:{...st.settings,demoSim:true},syncIdx:0};});this.toast('Demo-data geladen');}
+
+  renderVals(){
+    const s=this.state;const now=new Date();const mon0=monday(now);const mon0i=iso(mon0);const tIso=iso(now);
+    const nWeeks=Math.max(1,Math.min(4,+this.props.weeksVisible||4));const fullAt=(+this.props.fullThreshold||85)/100;
+    const byId={};s.members.forEach(m=>byId[m.id]=m);
+    const active=s.members.filter(m=>!m.archived);const items=s.items;
+    const idx={},planned={};
+    items.forEach(i=>{if(i.recurring)return;(i.allocations||[]).forEach((a,ai)=>{const k=a.m+'|'+a.w;(idx[k]=idx[k]||[]).push({i,a,ai});planned[k]=(planned[k]||0)+(+a.h||0);});});
+    const recurs=items.filter(i=>i.recurring);
+    const plOf=(m,w)=>(planned[m+'|'+w]||0)+recurs.reduce((t,i)=>t+recurH(i,w,m),0);
+    const horizon=new Set();for(let k=0;k<8;k++)horizon.add(iso(addDays(mon0,7*k)));Object.keys(planned).forEach(k=>{const w=k.split('|')[1];if(w>=mon0i)horizon.add(w);});
+    const over=new Set();const warnList=[];
+    active.forEach(m=>[...horizon].sort().forEach(w=>{const cap=capOf(m,w),pl=plOf(m.id,w);if(pl>cap+0.01){over.add(m.id+'|'+w);const diff=Math.round((parse(w)-mon0)/6048e5);
+      warnList.push({color:'#D27466',title:m.name+' · week '+weekNo(parse(w)),sub:'Overboekt: '+fmtH(pl)+'u gepland, '+fmtH(cap)+'u beschikbaar',go:()=>this.setState({view:'week',weekOffset:diff>nWeeks-1?diff-(nWeeks-1):0,warnOpen:false})});}}));
+    const warnsOf=i=>{const w=[];const al=i.allocations||[];
+      if(i.status!=='Klaar'&&!i.jiraClosed&&!(i.estimate>0))w.push('Geen uren-inschatting');
+      if(i.due&&!i.recurring&&al.some(a=>a.w>i.due))w.push('Ingepland na deadline ('+fmt(i.due)+')');
+      if(i.jiraClosed&&al.some(a=>a.w>=mon0i))w.push('Jira-ticket gesloten, maar nog ingepland');
+      if(!i.recurring&&al.some(a=>over.has(a.m+'|'+a.w)))w.push('Valt in een overboekte week');return w;};
+    const wmap=new Map();items.forEach(i=>wmap.set(i.id,warnsOf(i)));
+    items.forEach(i=>wmap.get(i.id).filter(x=>x!=='Valt in een overboekte week').forEach(x=>warnList.push({color:x.startsWith('Geen')?'#E2B65C':'#D27466',title:i.title,sub:x,go:()=>this.setState({selected:i.id,spread:null,warnOpen:false})})));
+    const q=s.search.trim().toLowerCase();const F=s.filters;
+    const match=i=>{if(F.source&&i.source!==F.source)return false;if(F.project&&i.project!==F.project)return false;if(F.channel&&i.channel!==F.channel)return false;if(F.market&&i.market!==F.market&&i.market!=='Alle')return false;if(F.requester&&personOf(i)!==F.requester)return false;
+      if(q){const hay=[i.title,i.key,i.project,i.channel,i.requester,personOf(i),i.note,(byId[i.assignee]||{}).name,...(i.allocations||[]).map(a=>(byId[a.m]||{}).name)].join(' ').toLowerCase();if(!hay.includes(q))return false;}return true;};
+    const select=id=>this.setState({selected:id,spread:null});
+    const deco=i=>{const w=wmap.get(i.id);const sum=allocSum(i);const est=i.estimate>0?i.estimate:0;
+      return {id:i.id,title:i.title,src:i.source==='jira'?'Jira':'Handmatig',meta:[i.key,i.project,i.channel,i.market].filter(Boolean).join(' · '),person:personOf(i)||'Onbekend',dept:i.requester||'Geen afdeling',created:fmt(i.created),due:i.due?fmt(i.due):'Geen deadline',dueColor:i.due&&i.due<tIso?'#B5493C':'#3A4A66',hours:est?fmtH(est)+'u':'? u',isNew:!!i.isNew,isPartial:sum>0&&sum<est,partial:'nog '+fmtH(est-sum)+'u',hasWarn:w.length>0,warnText:w.join(' · '),prio:i.priority,prioColor:PCOL[i.priority]||PCOL.Normaal,
+        onClick:()=>select(i.id),onDragStart:e=>this.dragStart(e,i.id,null),onDragEnd:()=>this.dragEnd()};};
+    const inboxAll=items.filter(inInbox);
+    const sorters={prio:(a,b)=>(PRIO[a.priority]-PRIO[b.priority])||((a.due||'9999')<(b.due||'9999')?-1:1),due:(a,b)=>(a.due||'9999')<(b.due||'9999')?-1:(a.due||'9999')>(b.due||'9999')?1:PRIO[a.priority]-PRIO[b.priority],created:(a,b)=>a.created<b.created?1:-1};
+    const inboxF=inboxAll.filter(match).sort(sorters[s.sort]);
+    const inboxItems=inboxF.map(deco);
+    const filtersOn=Object.values(F).some(Boolean)||!!q;
+
+    const views=[['inbox','Intake-inbox'],['week','Weekplanning'],['quarter','Kwartaaloverzicht'],['team','Team & capaciteit']];
+    const subs={inbox:'Alles wat nog ingepland moet worden, uit Jira en handmatig.',week:'Sleep items naar een teamlid en week. De balk laat zien hoeveel ruimte er nog is.',quarter:'Projecten, epics en deadlines op een tijdlijn.',team:'Beheer je team, beschikbaarheid en vaste taken.'};
+    const nav=views.map(([k,l])=>({label:l,go:()=>this.setState({view:k}),bg:s.view===k?'rgba(255,255,255,0.13)':'transparent',fg:s.view===k?'#FFFFFF':'#B8C6DE',hasCount:k==='inbox'&&inboxAll.length>0,count:inboxAll.length}));
+
+    const reqList=[...new Set([...REQS,...items.map(i=>i.requester).filter(Boolean)])];
+    const personList=[...new Set(items.map(personOf).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'nl'));
+    const projects=[...new Set([...s.projects,...items.map(i=>i.project).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'nl'));
+    const fdef=[['source',[{value:'',label:'Alle bronnen'},{value:'jira',label:'Jira'},{value:'manual',label:'Handmatig'}]],['project',[{value:'',label:'Alle projecten'},...projects]],['channel',[{value:'',label:'Alle kanalen'},...CHANNELS]],['market',[{value:'',label:'Alle markten'},'NL','BE','DE']],['requester',[{value:'',label:'Alle aanvragers'},...personList]]];
+    const filterList=fdef.map(([k,list])=>({value:F[k],on:e=>{const v=e.target.value;this.setState(st=>({filters:{...st.filters,[k]:v}}));},els:opt(list),border:F[k]?'#1F7FF0':'#D9E2EF',bg:F[k]?'#ECF2FD':'#FFFFFF'}));
+
+    const weeks=[];for(let k=0;k<nWeeks;k++){const d=addDays(mon0,7*(k+s.weekOffset));const cur=iso(d)===mon0i;weeks.push({iso:iso(d),label:'Wk '+weekNo(d)+(cur?' · nu':''),range:wkRange(d),color:cur?'#1F7FF0':'#1E2E4B',bg:cur?'#EEF4FE':'#F7F9FD'});}
+    const cell=(m,w)=>{const cap=capOf(m,w.iso),pl=plOf(m.id,w.iso);const key=m.id+'|'+w.iso;
+      const st=pl===0&&cap===0?'off':(cap===0||pl>cap+0.01)?'over':pl>=cap*fullAt?'full':'ok';
+      const chips=[];
+      (idx[key]||[]).forEach(({i,a})=>{const ww=wmap.get(i.id);chips.push({title:i.title,hours:fmtH(+a.h||0)+'u',src:i.source==='jira'?'Jira':'Handmatig',opacity:match(i)?'1':'0.28',draggable:'true',deco:(i.status==='Klaar'||i.jiraClosed)?'line-through':'none',dot:projColor(i.project),hasWarn:ww.length>0,warnText:ww.join(' · '),onDragStart:e=>this.dragStart(e,i.id,{m:a.m,w:a.w}),onDragEnd:()=>this.dragEnd(),onClick:()=>select(i.id)});});
+      recurs.forEach(i=>{const h=recurH(i,w.iso,m.id);if(h)chips.push({title:i.title,hours:fmtH(h)+'u',src:'↻ '+(i.recurring==='wekelijks'?'Wekelijks':'Maandelijks'),opacity:match(i)?'1':'0.28',draggable:'false',deco:'none',dot:projColor(i.project),hasWarn:false,warnText:'',onDragStart:e=>e.preventDefault(),onDragEnd:()=>{},onClick:()=>select(i.id)});});
+      const full=m.workdays.filter(d=>d<=7).length;const perDay=full?m.hours/full:0;const offDays=perDay?Math.round((m.hours-cap)/perDay):0;
+      return {capLabel:fmtH(pl)+' / '+fmtH(cap)+'u',statusLabel:{off:'Afwezig',over:'Overboekt',full:'Vol',ok:'Ruimte'}[st],statusFg:{off:'#7A89A3',over:'#B5493C',full:'#9A6F17',ok:'#3F8A63'}[st],barColor:{off:'#C9D3E3',over:'#D98073',full:'#E2B65C',ok:'#86C3A3'}[st],
+        pct:cap?Math.min(100,pl/cap*100)+'%':(pl?'100%':'0%'),bg:s.hover===key?'#EAF2FE':(st==='off'?'#FAFBFD':'#FFFFFF'),hasNote:offDays>0,note:offDays+(offDays===1?' vrije dag':' vrije dagen'),chips,over:this.over(key),drop:e=>{e.preventDefault();this.dropOn(m.id,w.iso);}};};
+    const dayLabel=m=>{const d=(m.workdays||[]).slice().sort();return d.join(',')==='1,2,3,4,5'?'ma t/m vr':d.map(x=>DAYS[x-1]).join(', ')||'geen';};
+    const rows=active.map(m=>({name:m.name,role:m.role||'—',color:m.color,initials:m.initials||initialsOf(m.name),hoursLabel:fmtH(m.hours)+'u/week · '+dayLabel(m),isExtern:m.type==='extern',menu:e=>this.openMenu(e,m.id),cells:weeks.map(w=>cell(m,w))}));
+    const railItems=inboxF.map(deco);
+
+    const qBase=new Date(now.getFullYear(),Math.floor(now.getMonth()/3)*3+3*s.qOffset,1);const qEnd=new Date(qBase.getFullYear(),qBase.getMonth()+3,0);
+    const rs=monday(qBase),re=addDays(monday(qEnd),7),span=re-rs;const pc=d=>Math.max(0,Math.min(100,(d-rs)/span*100));const inR=(a,b)=>b>=rs&&a<re;
+    const qWeeks=[];for(let d=new Date(rs);d<re;d=addDays(d,7)){const cur=iso(d)===mon0i;qWeeks.push({label:String(weekNo(d)),color:cur?'#1F7FF0':'#7A89A3',fw:cur?'700':'500'});}
+    const qMonths=[0,1,2].map(k=>{const ms=new Date(qBase.getFullYear(),qBase.getMonth()+k,1),me=new Date(qBase.getFullYear(),qBase.getMonth()+k+1,1);return {label:NL_MF[ms.getMonth()],left:pc(ms)+'%',width:(pc(me)-pc(ms))+'%'};});
+    const groups={};items.filter(i=>!i.recurring&&match(i)).forEach(i=>{const k=i.project||'Zonder project';(groups[k]=groups[k]||[]).push(i);});
+    const qRows=[];
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b,'nl')).forEach(pn=>{
+      const col=projColor(pn);const rp=[];let pS=null,pE=null;
+      groups[pn].forEach(i=>{const al=(i.allocations||[]).map(a=>a.w).sort();let bS=null,bE=null,pl=false;
+        if(al.length){bS=parse(al[0]);bE=addDays(parse(al[al.length-1]),5);pl=true;}else if(i.start&&i.due){bS=parse(i.start);bE=addDays(parse(i.due),1);}
+        const dD=i.due?parse(i.due):null;const barIn=!!(bS&&inR(bS,bE));const dueIn=!!(dD&&dD>=rs&&dD<re);if(!barIn&&!dueIn)return;
+        const late=pl&&i.due&&al[al.length-1]>i.due;const done=i.status==='Klaar'||i.jiraClosed;
+        rp.push({k:(bS||dD).getTime(),row:{isItem:true,isProject:false,label:i.title,sub:[i.source==='jira'?i.key:'Handmatig',byId[i.assignee]?byId[i.assignee].name:'Niet toegewezen',pl?'':'nog niet ingepland'].filter(Boolean).join(' · '),
+          hasBar:barIn,left:barIn?pc(bS)+'%':'0',width:barIn?Math.max(0.8,pc(bE)-pc(bS))+'%':'0',barBg:pl?col+'B3':'transparent',barBorder:pl?'0':'1.5px dashed '+col,
+          hasDue:dueIn,dueLeft:dueIn?pc(new Date(dD.getTime()+432e5))+'%':'0',dueColor:late?'#D27466':'#1E2E4B',dueTitle:'Deadline '+fmt(i.due)+(late?' · gepland na deadline':''),opacity:done?'0.45':'1',onClick:()=>select(i.id)}});
+        [bS,dD].forEach(d=>{if(d&&(!pS||d<pS))pS=d;});[bE,dD].forEach(d=>{if(d&&(!pE||d>pE))pE=d;});});
+      if(!rp.length)return;const pIn=!!(pS&&pE&&inR(pS,pE));
+      qRows.push({isProject:true,isItem:false,label:pn,color:col,sub:rp.length+(rp.length===1?' item':' items'),hasBar:pIn,left:pIn?pc(pS)+'%':'0',width:pIn?Math.max(0.8,pc(pE)-pc(pS))+'%':'0'});
+      rp.sort((a,b)=>a.k-b.k).forEach(r=>qRows.push(r.row));});
+    const nq=qWeeks.length;const gridBg='repeating-linear-gradient(to right, transparent 0, transparent calc('+(100/nq)+'% - 1px), #EEF2F8 calc('+(100/nq)+'% - 1px), #EEF2F8 '+(100/nq)+'%)';
+
+    const capWeeks=[];for(let k=0;k<8;k++){const d=addDays(mon0,7*k);capWeeks.push({iso:iso(d),label:'Wk '+weekNo(d),color:k===0?'#1F7FF0':'#3A4A66'});}
+    const capRows=active.map(m=>({name:m.name,color:m.color,cells:capWeeks.map(w=>{const cap=capOf(m,w.iso),pl=plOf(m.id,w.iso);const r=cap?pl/cap:(pl?2:0);const st=!cap&&!pl?'off':r>1.001?'over':r>=fullAt?'full':'ok';
+      return {label:cap?Math.round(r*100)+'%':'Afwezig',pct:Math.min(100,r*100)+'%',color:{off:'#C9D3E3',over:'#D98073',full:'#E2B65C',ok:'#86C3A3'}[st],fg:{off:'#7A89A3',over:'#B5493C',full:'#9A6F17',ok:'#1E2E4B'}[st],title:fmtH(pl)+' van '+fmtH(cap)+'u'};})}));
+    const teamCards=active.map(m=>{const vac=(m.vacations||[]).filter(v=>(v.to||v.from)>=tIso).map(v=>fmt(v.from)+(v.to&&v.to!==v.from?' – '+fmt(v.to):'')).join(', ');
+      return {name:m.name,role:m.role||'—',color:m.color,initials:m.initials||initialsOf(m.name),hours:fmtH(m.hours)+'u per week',days:dayLabel(m),type:m.type==='extern'?'Extern':'Intern',vac:vac||'Niets gepland',edit:()=>this.openMember(m.id),menu:e=>this.openMenu(e,m.id)};});
+    const archived=s.members.filter(m=>m.archived).map(m=>({name:m.name,role:m.role||'—',initials:m.initials||initialsOf(m.name),restore:()=>this.archive(m.id),remove:()=>this.openDelete(m.id)}));
+    const recurring=recurs.map(i=>{const m=byId[i.assignee];return {title:i.title,project:i.project,freq:i.recurring==='wekelijks'?'Wekelijks':'Maandelijks',hours:fmtH(i.estimate||0)+'u',person:m?m.name:'Niet toegewezen',color:m?m.color:'#C9D3E3',initials:m?(m.initials||initialsOf(m.name)):'?',onClick:()=>select(i.id)};});
+    const demoCount=items.filter(i=>i.demo).length;
+
+    const memberEls=opt(active.map(m=>({value:m.id,label:m.name})));
+    const assigneeEls=opt([{value:'',label:'Niemand'},...active.map(m=>({value:m.id,label:m.name}))]);
+    const wOpts=[];for(let k=-8;k<=26;k++){const d=addDays(mon0,7*k);wOpts.push({value:iso(d),label:'Wk '+weekNo(d)+' · '+fmt(d)});}
+    const weekEls=opt(wOpts);const weekPickEls=opt([{value:'',label:'Nog niet'},...wOpts.slice(8)]);
+    const statusEls=opt(STATUSES),prioEls=opt(['Hoog','Normaal','Laag']),marketEls=opt(MARKETS);
+    const channelEls=opt([{value:'',label:'Geen kanaal'},...CHANNELS]),reqEls=opt([{value:'',label:'Onbekend'},...reqList]);
+    const recurEls=opt([{value:'',label:'Niet terugkerend'},{value:'wekelijks',label:'Wekelijks'},{value:'maandelijks',label:'Maandelijks'}]);
+    const nEls=opt([1,2,3,4,5,6,8].map(n=>({value:String(n),label:n+(n===1?' week':' weken')})));
+
+    let p={v:{},on:{},sp:{},jira:{}};const sel=items.find(i=>i.id===s.selected);
+    if(sel){const up=patch=>this.updItem(sel.id,patch);const on={};
+      ['title','project','status','priority','start','due','market','channel','requester','requesterName','recurring','note'].forEach(k=>on[k]=e=>up({[k]:e.target.value}));
+      on.assignee=e=>up({assignee:e.target.value||null});on.estimate=e=>{const v=e.target.value;up({estimate:v===''?null:Math.max(0,parseFloat(v)||0)});};
+      const est=sel.estimate>0?sel.estimate:0;const sum=allocSum(sel);const am=byId[sel.assignee];
+      const sp=s.spread||{m:sel.assignee||(active[0]&&active[0].id)||'',w:mon0i,n:2};const setSp=patch=>this.setState({spread:{...sp,...patch}});
+      p={v:{title:sel.title,project:sel.project,status:sel.status,priority:sel.priority,assignee:sel.assignee||'',estimate:sel.estimate==null?'':sel.estimate,start:sel.start||'',due:sel.due||'',market:sel.market||'Alle',channel:sel.channel||'',requester:sel.requester||'',requesterName:personOf(sel),recurring:sel.recurring||'',note:sel.note||''},on,
+        projectEls:opt(projects.includes(sel.project)||!sel.project?projects:[sel.project,...projects]),
+        src:sel.source==='jira'?'Jira':'Handmatig',isJira:sel.source==='jira',isManual:sel.source!=='jira',key:sel.key,jiraUrl:'https://'+s.settings.site+'/browse/'+sel.key,isNew:!!sel.isNew,isClosed:!!sel.jiraClosed,
+        warnings:wmap.get(sel.id).map(t=>({t})),hasWarnings:wmap.get(sel.id).length>0,isRecurring:!!sel.recurring,notRecurring:!sel.recurring,
+        recurText:am?'Blokt automatisch '+fmtH(est)+'u '+(sel.recurring==='wekelijks'?'per week':'in de eerste week van elke maand')+' bij '+am.name+'.':'Kies hierboven wie deze vaste taak doet. Dan blokt hij automatisch capaciteit.',
+        plannedLabel:sel.recurring?'':fmtH(sum)+' van '+(est?fmtH(est)+'u':'? u')+' ingepland',
+        allocs:(sel.allocations||[]).map((a,ai)=>({m:a.m,w:a.w,h:a.h,onM:e=>this.updAlloc(sel.id,ai,{m:e.target.value}),onW:e=>this.updAlloc(sel.id,ai,{w:e.target.value}),onH:e=>this.updAlloc(sel.id,ai,{h:Math.max(0,parseFloat(e.target.value)||0)}),remove:()=>this.removeAlloc(sel.id,ai)})),
+        noAllocs:!(sel.allocations||[]).length,addAlloc:()=>this.addAlloc(sel.id),
+        sp:{m:sp.m,w:sp.w,n:String(sp.n),label:'Verdeel '+(est?fmtH(est)+'u':'de uren')+' gelijk over meerdere weken',onM:e=>setSp({m:e.target.value}),onW:e=>setSp({w:e.target.value}),onN:e=>setSp({n:e.target.value}),go:()=>this.spreadItem(sel.id,sp)},
+        jira:{type:sel.type||'—',status:sel.jiraStatus||'—',reporter:sel.reporter||'—',created:fmt(sel.created),labels:(sel.labels||[]).join(', ')||'—',components:(sel.components||[]).join(', ')||'—',epic:sel.epic||'—'},
+        close:()=>this.setState({selected:null}),convert:()=>this.convert(sel.id),unplan:()=>{up({allocations:[]});this.toast('Uit de planning gehaald');},
+        remove:()=>{this.setState(st=>({items:st.items.filter(i=>i.id!==sel.id),selected:null}));this.toast('Taak verwijderd');}};}
+
+    let fo={v:{},on:{},err:{}};const tf=s.form;
+    if(tf){const on={};Object.keys(tf).forEach(k=>on[k]=e=>{const v=e.target.value;this.setState(st=>({form:{...st.form,[k]:v}}));});const E=s.errors||{};
+      fo={v:tf,on,heading:tf.recurring?'Nieuwe terugkerende taak':'Nieuwe taak',isNewProject:tf.project==='__new',projectEls:opt([{value:'',label:'Kies een project'},...projects,{value:'__new',label:'+ Nieuw project…'}]),save:()=>this.saveTask(),
+        err:{project:E.project,hasProject:!!E.project,projectBorder:E.project?'#D27466':'#D9E2EF',title:E.title,hasTitle:!!E.title,titleBorder:E.title?'#D27466':'#D9E2EF',estimate:E.estimate,hasEstimate:!!E.estimate,estimateBorder:E.estimate?'#D27466':'#D9E2EF'}};}
+
+    let mf={};const f=s.mform;
+    if(f){const wd=f.workdays||[];mf={heading:f.id?'Teamlid bewerken':'Nieuw teamlid',name:f.name,role:f.role,initials:f.initials||initialsOf(f.name)||'?',hours:f.hours,color:f.color,err:s.mErr,hasErr:!!s.mErr,
+      perDay:wd.length&&f.hours?'· '+fmtH(f.hours/wd.length)+'u per werkdag':'',
+      onName:e=>{const v=e.target.value;this.setState(st=>({mErr:'',mform:{...st.mform,name:v,initials:st.mform.initTouched?st.mform.initials:initialsOf(v)}}));},
+      onRole:e=>this.setM({role:e.target.value}),onInit:e=>this.setM({initials:e.target.value.toUpperCase().slice(0,3),initTouched:true}),onHours:e=>this.setM({hours:e.target.value===''?'':Math.max(0,+e.target.value)}),
+      colors:COLORS.map(c=>({c,pick:()=>this.setM({color:c}),ring:f.color===c?'0 0 0 2px #FFFFFF, 0 0 0 4px '+c:'none'})),
+      days:DAYS.map((d,k)=>{const on=wd.includes(k+1);return {label:d,toggle:()=>this.setM({workdays:on?wd.filter(x=>x!==k+1):[...wd,k+1]}),bg:on?'#1E2E4B':'#FFFFFF',fg:on?'#FFFFFF':'#3A4A66',border:on?'#1E2E4B':'#D9E2EF'};}),
+      types:[['intern','Intern'],['extern','Extern']].map(([v,l])=>({label:l,pick:()=>this.setM({type:v}),bg:f.type===v?'#FFFFFF':'transparent',fg:f.type===v?'#1E2E4B':'#5F6F89',shadow:f.type===v?'0 1px 3px rgba(30,46,75,0.12)':'none'})),
+      vacs:(f.vacations||[]).map((v,vi)=>{const setV=patch=>this.setM({vacations:f.vacations.map((x,k)=>k===vi?{...x,...patch}:x)});return {from:v.from||'',to:v.to||'',label:v.label||'',onFrom:e=>setV({from:e.target.value}),onTo:e=>setV({to:e.target.value}),onLabel:e=>setV({label:e.target.value}),remove:()=>this.setM({vacations:f.vacations.filter((x,k)=>k!==vi)})};}),
+      noVacs:!(f.vacations||[]).length,addVac:()=>this.setM({vacations:[...(f.vacations||[]),{from:tIso,to:tIso,label:''}]}),save:()=>this.saveMember()};}
+
+    let del={};const dm=s.del&&byId[s.del.id];
+    if(dm){const tasks=items.filter(i=>(i.allocations||[]).some(a=>a.m===dm.id)||(i.recurring&&i.assignee===dm.id));const hrs=items.reduce((t,i)=>t+(i.allocations||[]).filter(a=>a.m===dm.id).reduce((x,a)=>x+(+a.h||0),0),0);
+      const others=active.filter(m=>m.id!==dm.id);const first=dm.name.split(' ')[0];const mv=s.del.mode==='move';
+      del={name:dm.name,hasTasks:tasks.length>0,canMove:others.length>0,isMove:mv,to:s.del.to,
+        summary:tasks.length?first+' heeft '+tasks.length+(tasks.length===1?' taak':' taken')+' ingepland ('+fmtH(hrs)+'u). Wat moet daarmee gebeuren?':first+' heeft geen ingeplande taken. Dit kun je niet ongedaan maken.',
+        pickInbox:()=>this.setState(st=>({del:{...st.del,mode:'inbox'}})),pickMove:()=>this.setState(st=>({del:{...st.del,mode:'move'}})),
+        inboxBorder:mv?'#E3E9F2':'#1F7FF0',moveBorder:mv?'#1F7FF0':'#E3E9F2',inboxDot:mv?'transparent':'#1F7FF0',moveDot:mv?'#1F7FF0':'transparent',
+        onTo:e=>{const v=e.target.value;this.setState(st=>({del:{...st.del,to:v}}));},els:opt(others.map(m=>({value:m.id,label:m.name}))),confirm:()=>this.applyDelete()};}
+
+    const S=s.settings;const st={site:S.site,projects:S.projects,jql:S.jql,interval:String(S.interval),onSite:e=>this.setSetting('site',e.target.value),onProjects:e=>this.setSetting('projects',e.target.value),onJql:e=>this.setSetting('jql',e.target.value),onInterval:e=>this.setSetting('interval',+e.target.value),
+      toggleAuto:()=>this.setSetting('auto',!S.auto),autoBg:S.auto?'#1F7FF0':'#C9D3E3',knob:S.auto?'19px':'3px',intervalEls:opt([1,5,15,30].map(n=>({value:String(n),label:'Elke '+n+' min'}))),
+      onCsv:e=>this.onCsv(e),csvMsg:s.csvMsg,hasCsvMsg:!!s.csvMsg,dot:S.demoSim?'#3FA27A':'#E2B65C',
+      statusTitle:S.demoSim?'Gesimuleerde koppeling (demo)':'Geen live koppeling actief',
+      statusText:S.demoSim?'Er is nog geen echte Jira-verbinding. Deze demo laat zien hoe nieuwe intake-tickets binnenkomen en hoe matching op Issue key werkt.':'Koppel Jira Cloud via je beheerder, of importeer tussentijds een CSV-export hieronder.'};
+    const ls=new Date(s.lastSync||Date.now());const syncTime=String(ls.getHours()).padStart(2,'0')+':'+String(ls.getMinutes()).padStart(2,'0');
+
+    const mm=s.menu&&byId[s.menu.id];
+    const menu=mm?{left:Math.max(8,s.menu.x-180)+'px',top:Math.min(s.menu.y+6,window.innerHeight-150)+'px',edit:()=>{this.setState({menu:null});this.openMember(mm.id);},archiveLabel:mm.archived?'Terugzetten':'Archiveren',archive:()=>this.archive(mm.id),remove:()=>this.openDelete(mm.id)}:{};
+    const closeModal=()=>this.setState({modal:null,form:null,mform:null,del:null});
+    const wFirst=weeks[0],wLast=weeks[weeks.length-1];
+
+    return {
+      nav,syncDot:S.demoSim?'#7FD1A8':'#E2B65C',syncMode:S.demoSim?'Demo-koppeling':'Niet gekoppeld',syncTime,autoLabel:S.auto?'Ververst elke '+S.interval+' min':'Automatisch verversen staat uit',syncBtn:s.syncing?'Ophalen…':'Nu ophalen',syncNow:()=>this.sync(true),openSettings:()=>this.setState({modal:'settings',csvMsg:''}),
+      viewTitle:(views.find(v=>v[0]===s.view)||views[1])[1],viewSub:subs[s.view],
+      hasWarn:warnList.length>0,warnLabel:warnList.length+(warnList.length===1?' waarschuwing':' waarschuwingen'),warnList,warnOpen:s.warnOpen,toggleWarn:()=>this.setState({warnOpen:!s.warnOpen}),closeMenus:()=>this.setState({menu:null,warnOpen:false}),
+      exportCsv:()=>this.exportCsv(byId),openTask:()=>this.openTask(),
+      search:s.search,onSearch:e=>this.setState({search:e.target.value}),filterList,hasFilters:filtersOn,clearFilters:()=>this.setState({search:'',filters:{source:'',project:'',channel:'',market:'',requester:''}}),
+      isInbox:s.view==='inbox',isWeek:s.view==='week',isQuarter:s.view==='quarter',isTeam:s.view==='team',
+      inboxSummary:inboxF.length===inboxAll.length?inboxAll.length+(inboxAll.length===1?' item':' items')+' nog in te plannen':inboxF.length+' van '+inboxAll.length+' items (gefilterd)',
+      sortOpts:[['prio','Prioriteit'],['due','Deadline'],['created','Aangemaakt']].map(([k,l])=>({label:l,go:()=>this.setState({sort:k}),bg:s.sort===k?'#FFFFFF':'transparent',fg:s.sort===k?'#1E2E4B':'#5F6F89',shadow:s.sort===k?'0 1px 3px rgba(30,46,75,0.12)':'none'})),
+      inboxEmpty:inboxItems.length===0,inboxEmptyTitle:inboxAll.length?'Niets gevonden':'Alles ingepland. Lekker bezig.',inboxEmptySub:inboxAll.length?'Probeer een andere zoekterm of wis de filters.':'Nieuwe aanvragen uit Jira verschijnen hier vanzelf.',inboxItems,
+      railItems,railCount:railItems.length,railEmpty:railItems.length===0,railBg:s.hover==='rail'?'#DCE8FB':'#ECF2FD',railOver:this.over('rail'),railDrop:e=>this.railDrop(e),
+      weeks,rows,noMembers:rows.length===0,gridCols:'210px repeat('+nWeeks+',minmax(180px,1fr))',gridMinW:(210+180*nWeeks)+'px',
+      weekRangeLabel:'Week '+weekNo(parse(wFirst.iso))+' – '+weekNo(parse(wLast.iso))+' · '+fmt(wFirst.iso)+' – '+fmt(addDays(parse(wLast.iso),4)),
+      prevWeeks:()=>this.setState({weekOffset:s.weekOffset-1}),nextWeeks:()=>this.setState({weekOffset:s.weekOffset+1}),thisWeek:()=>this.setState({weekOffset:0}),addMember:()=>this.openMember(null),
+      qLabel:'Q'+(Math.floor(qBase.getMonth()/3)+1)+' '+qBase.getFullYear(),prevQ:()=>this.setState({qOffset:s.qOffset-1}),nextQ:()=>this.setState({qOffset:s.qOffset+1}),qMonths,qWeeks,qRows,qEmpty:qRows.length===0,gridBg,todayIn:now>=rs&&now<re,todayLeft:pc(now)+'%',
+      teamCards,archived,hasArchived:archived.length>0,capWeeks,capRows,recurring,recurringEmpty:recurring.length===0,addRecurring:()=>this.openTask({recurring:'wekelijks'}),
+      demoText:demoCount?demoCount+' voorbeelditems staan in de planning. Wis ze zodra je met echte aanvragen start.':'Er staat geen demo-data in de planning.',hasDemo:demoCount>0,noDemo:demoCount===0,clearDemo:()=>this.clearDemo(),loadDemo:()=>this.loadDemo(),
+      memberEls,assigneeEls,weekEls,weekPickEls,statusEls,prioEls,marketEls,channelEls,reqEls,recurEls,nEls,
+      panelOpen:!!sel,p,taskOpen:s.modal==='task'&&!!tf,fo,memberOpen:s.modal==='member'&&!!f,mf,delOpen:s.modal==='delete'&&!!dm,del,settingsOpen:s.modal==='settings',st,
+      menuOpen:!!mm,menu,closeModal,stop:e=>e.stopPropagation(),hasToast:!!s.toast,toast:s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
