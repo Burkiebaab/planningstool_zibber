@@ -38,6 +38,7 @@ function fromIssue(is: JiraIssue): IssueFields {
     status,
     priority,
     jiraAssignee: is.assignee || '',
+    ...(is.description !== undefined ? { jiraDescription: is.description } : {}),
     reporter: is.reporter || '',
     created: is.created || iso(new Date()),
     due: is.due || '',

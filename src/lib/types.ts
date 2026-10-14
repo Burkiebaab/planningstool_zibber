@@ -25,6 +25,8 @@ export interface Item {
   assignee: string | null;
   /** Assignee volgens Jira (weergavenaam), ook als die persoon geen teamlid in de tool is. */
   jiraAssignee?: string;
+  /** Omschrijving uit Jira (platte tekst). */
+  jiraDescription?: string;
   reporter: string;
   requester: string;
   requesterName: string;
@@ -109,6 +111,14 @@ export interface JiraIssue {
   components: string[];
   epic: string;
   epicKey?: string;
+  description?: string;
+}
+
+export interface JiraComment {
+  id: string;
+  author: string;
+  created: string;
+  text: string;
 }
 
 export interface Filters {

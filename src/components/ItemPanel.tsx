@@ -5,7 +5,8 @@ import type { Derived } from '../lib/derive';
 import { allocSum, estimateOf, personOf } from '../lib/planning';
 import type { JiraState, Planning } from '../lib/store';
 import type { Item, Priority, Recurring, Status } from '../lib/types';
-import { Field, NewBadge, NumberInput, Options, SrcTag, type Opt } from './ui';
+import { JiraComments } from './JiraComments';
+import { Field, LinkedText, NewBadge, NumberInput, Options, SrcTag, type Opt } from './ui';
 
 export const RECUR_OPTS: Opt[] = [
   { value: '', label: 'Niet terugkerend' },
@@ -29,6 +30,7 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
   const jiraLive = jiraMode === 'live';
   const [confirmConvert, setConfirmConvert] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
   const memberOpts: Opt[] = dv.active.map((m) => ({ value: m.id, label: m.name }));
   const assigneeOpts: Opt[] = [{ value: '', label: 'Niemand' }, ...memberOpts];
   const [spread, setSpread] = useState({ m: sel.assignee || dv.active[0]?.id || '', w: dv.mon0i, n: 2 });
@@ -71,6 +73,24 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
 
         <div className="panel-body">
           <textarea className="panel-title" rows={2} {...text('title')} />
+
+          {isJira && sel.jiraDescription !== undefined && (
+            <div className="panel-section">
+              <span className="panel-h">Omschrijving</span>
+              {sel.jiraDescription ? (
+                <>
+                  <LinkedText text={sel.jiraDescription} className={'jira-desc' + (descOpen ? '' : ' jira-desc-clamp')} />
+                  {(sel.jiraDescription.length > 400 || sel.jiraDescription.split('\n').length > 8) && (
+                    <button type="button" className="link-btn" style={{ alignSelf: 'flex-start', padding: 0 }} onClick={() => setDescOpen(!descOpen)}>
+                      {descOpen ? 'Minder tonen' : 'Meer tonen'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="muted" style={{ fontSize: 13 }}>Geen omschrijving in Jira.</span>
+              )}
+            </div>
+          )}
 
           {warnings.length > 0 && (
             <div className="panel-warnings">
@@ -202,9 +222,12 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
           </div>
 
           <label className="panel-note">
-            Notitie
+            {isJira ? 'Interne notitie' : 'Notitie'}
+            {isJira && <span className="field-hint">Alleen zichtbaar in de planningstool. Gebruik "Opmerkingen in Jira" om iets in het ticket te zetten.</span>}
             <textarea className="input textarea" rows={3} placeholder="Context, links of afspraken" {...text('note')} />
           </label>
+
+          {isJira && jiraLive && !sel.demo && <JiraComments issueKey={sel.key} />}
 
           {isJira && (
             <div className="panel-section">

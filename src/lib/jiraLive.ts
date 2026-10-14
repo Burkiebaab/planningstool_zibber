@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { JiraEpic, JiraIssue } from './types';
+import type { JiraComment, JiraEpic, JiraIssue } from './types';
 
 export type LiveResult =
   | { ok: true; site: string; issues: JiraIssue[]; missing: string[]; epics: JiraEpic[] | null }
@@ -68,4 +68,18 @@ export async function createJiraIssue(issue: NewIssue): Promise<{ ok: true; key:
 export async function pushParent(key: string, parent: string | null): Promise<{ ok: true } | { ok: false; message: string }> {
   const r = await callApi({ action: 'parent', key, parent });
   return r.ok ? { ok: true } : { ok: false, message: r.message };
+}
+
+/** De laatste opmerkingen van een ticket in Jira, nieuwste eerst. */
+export async function fetchComments(key: string): Promise<{ ok: true; comments: JiraComment[] } | { ok: false; message: string }> {
+  const r = await callApi({ action: 'comments', key });
+  if (!r.ok) return { ok: false, message: r.message };
+  return { ok: true, comments: (r.body.comments as JiraComment[]) || [] };
+}
+
+/** Plaatst een opmerking bij een ticket in Jira. */
+export async function postComment(key: string, text: string): Promise<{ ok: true; comment: JiraComment } | { ok: false; message: string }> {
+  const r = await callApi({ action: 'comment', key, text });
+  if (!r.ok) return { ok: false, message: r.message };
+  return { ok: true, comment: r.body.comment as JiraComment };
 }
