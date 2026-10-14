@@ -1,4 +1,6 @@
+import type { Account } from '../App';
 import { hhmm } from '../lib/dates';
+import { initialsOf } from '../lib/planning';
 import type { Settings, View } from '../lib/types';
 
 export const VIEWS: [View, string][] = [
@@ -17,9 +19,10 @@ interface Props {
   syncing: boolean;
   onSync: () => void;
   onSettings: () => void;
+  account?: Account;
 }
 
-export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing, onSync, onSettings }: Props) {
+export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing, onSync, onSettings, account }: Props) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -55,6 +58,17 @@ export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing,
           </button>
         </div>
       </div>
+      {account && (
+        <div className="account">
+          <span className="account-avatar">{initialsOf(account.name) || '?'}</span>
+          <span className="account-text">
+            <span className="account-name">{account.name}</span>
+            <button type="button" className="account-logout" onClick={account.onSignOut}>
+              Uitloggen
+            </button>
+          </span>
+        </div>
+      )}
     </aside>
   );
 }
