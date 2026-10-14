@@ -98,7 +98,10 @@ export function ItemPanel({ item: sel, dv, site, jiraLive, weekOpts, pl, onClose
               </select>
             </Field>
             <Field label="Geschatte tijd (uren)">
-              <NumberInput className="input" value={sel.estimate} onValue={(v) => up({ estimate: v })} placeholder="Nog niet ingeschat" />
+              <NumberInput className="input" value={sel.estimate} onValue={(v) => pl.setEstimate(sel.id, v)} placeholder="Nog niet ingeschat" />
+              {isJira && jiraLive && sel.jiraEstimate !== undefined && sel.estimate !== sel.jiraEstimate && (
+                <span className="field-hint">In Jira: {sel.jiraEstimate ? fmtH(sel.jiraEstimate) + 'u' : 'leeg'}</span>
+              )}
             </Field>
             <Field label="Startdatum">
               <input className="input" type="date" {...text('start')} />

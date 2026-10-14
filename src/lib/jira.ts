@@ -29,7 +29,7 @@ function fromIssue(is: JiraIssue): IssueFields {
   const market = labels.map((l) => String(l).toUpperCase()).find((l) => ['NL', 'BE', 'DE'].includes(l));
   const channel = CHANNELS.find((c) => labels.some((l) => String(l).toLowerCase() === c.toLowerCase()));
   const requester = REQS.find((r) => comps.some((c) => String(c).toLowerCase() === r.toLowerCase()));
-  const est = is.estimate;
+  const est = is.estimate == null || isNaN(is.estimate) ? null : Number(is.estimate);
   return {
     key: is.key,
     title: is.summary || is.key,
@@ -40,7 +40,8 @@ function fromIssue(is: JiraIssue): IssueFields {
     reporter: is.reporter || '',
     created: is.created || iso(new Date()),
     due: is.due || '',
-    estimate: est == null || isNaN(est) ? null : Number(est),
+    estimate: est,
+    jiraEstimate: est,
     labels,
     components: comps,
     epic: is.epic || '',
@@ -96,7 +97,11 @@ export function mergeIssues(data: AppData, issues: JiraIssue[], demo: boolean) {
     if (ix >= 0) {
       const o = items[ix];
       const p: Record<string, unknown> = { ...f };
-      if (p.estimate == null) delete p.estimate;
+      // Uren: de tool is leidend. Een nieuwe schatting uit Jira nemen we alleen over als de uren in de
+      // tool sinds de vorige sync niet zijn aangepast (of nog leeg zijn).
+      const lastJira = o.jiraEstimate === undefined ? o.estimate : o.jiraEstimate;
+      const editedInTool = o.estimate != null && o.estimate !== lastJira;
+      if (f.estimate == null || editedInTool) delete p.estimate;
       (['due', 'market', 'channel', 'requester'] as const).forEach((k) => {
         if (!p[k]) delete p[k];
       });
