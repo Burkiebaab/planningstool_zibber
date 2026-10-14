@@ -1817,6 +1817,191 @@ select.input-xs {
   }
 }
 
+/* ── Account in de sidebar ───────────────────────────────── */
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  margin-top: -14px;
+}
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.account-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-logout {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  color: #afc0dc;
+}
+.account-logout:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ── Inloggen, laden en eerste keer ──────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+.auth-card {
+  width: min(440px, 100%);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  padding: 32px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.auth-brand-name {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.auth-brand-sub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.auth-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-text h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.auth-text p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.auth-error {
+  background: var(--danger-soft);
+  color: var(--danger-dark);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.google-btn {
+  height: 46px;
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.google-btn:hover {
+  background: #f5f8fd;
+}
+.google-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.auth-foot {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted-2);
+  text-align: center;
+}
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.auth-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid var(--blue-soft);
+  border-top-color: var(--blue);
+  animation: zbSpin 0.8s linear infinite;
+}
+@keyframes zbSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.setup-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.setup-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.setup-option:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--hover-soft);
+}
+.setup-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.setup-option-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
 /* ── Kleine schermen ─────────────────────────────────────── */
 @media (max-width: 860px) {
   .app {

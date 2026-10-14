@@ -5,6 +5,7 @@ import { buildDemo, demoPool, freshData } from './demo';
 import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
 import { allocSum, blankItem, estimateOf, initialsOf, uid } from './planning';
+import { useRemoteSync } from './remoteSync';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
 export interface TaskForm {
@@ -33,15 +34,19 @@ export interface MemberForm extends Omit<Member, 'id' | 'hours'> {
   hours: number | '';
 }
 
-function load(): AppData {
+/** Planning uit deze browser, of null als er niets (geldigs) staat. */
+export function readLocal(): AppData | null {
   try {
     const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (d && d.members) return d;
+    if (d && d.members && d.items) return d;
   } catch {
-    /* lege of kapotte opslag: start met demo-data */
+    /* lege of kapotte opslag */
   }
-  return freshData();
+  return null;
 }
+
+/** Startdata voor de lokale modus: wat in de browser staat, anders demo-data. */
+export const loadLocal = (): AppData => readLocal() || freshData();
 
 function save(d: AppData) {
   try {
@@ -50,6 +55,9 @@ function save(d: AppData) {
     /* opslag vol of geblokkeerd */
   }
 }
+
+/** Waar de planning wordt bewaard: in deze browser, of in Supabase namens een ingelogde gebruiker. */
+export type Backend = { kind: 'local' } | { kind: 'remote'; email: string };
 
 export function useToast() {
   const [toast, setToast] = useState<string | null>(null);
@@ -62,17 +70,23 @@ export function useToast() {
   return [toast, show] as const;
 }
 
-export function usePlanning(toast: (msg: string) => void) {
-  const [data, setData] = useState<AppData>(load);
+export function usePlanning(toast: (msg: string) => void, initial: AppData, backend: Backend) {
+  const [data, setData] = useState<AppData>(initial);
   const [syncing, setSyncing] = useState(false);
   const dataRef = useRef(data);
   dataRef.current = data;
   const syncingRef = useRef(false);
+  const local = backend.kind === 'local';
 
-  useEffect(() => save(data), [data]);
+  useRemoteSync(data, setData, backend.kind === 'remote' ? backend.email : null, toast);
 
-  // Houd meerdere tabbladen in sync.
   useEffect(() => {
+    if (local) save(data);
+  }, [data, local]);
+
+  // Lokale modus: houd meerdere tabbladen in sync.
+  useEffect(() => {
+    if (!local) return;
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY || !e.newValue) return;
       try {
@@ -83,7 +97,7 @@ export function usePlanning(toast: (msg: string) => void) {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [local]);
 
   const updItem = useCallback((id: string, patch: Partial<Item>) => {
     setData((d) => ({ ...d, items: d.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) }));

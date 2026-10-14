@@ -14,8 +14,28 @@ Verder: zijpaneel per item (planning verdelen over weken, Jira-velden), waarschu
 (geen inschatting, na deadline, overboekt, gesloten in Jira), filters en zoeken, CSV-export van de planning
 en een Jira-koppeling (gesimuleerd in de demo, of via import van een Jira CSV-export; matching op Issue key).
 
-Alle data staat in `localStorage` van de browser. Bij de eerste start wordt demo-data geladen; die kun je
-wissen via *Team & capaciteit → Demo-data wissen*.
+## Opslag en inloggen
+
+Met Supabase gekoppeld staat de planning centraal in een database en ziet iedereen dezelfde planning;
+wijzigingen van collega's komen direct (realtime) binnen. Inloggen gaat via Google en alleen
+@zibber.nl-accounts hebben toegang. Dat wordt afgedwongen in de app én in de database (Row Level Security).
+
+Zonder Supabase-gegevens draait de app volledig lokaal: alles staat dan in `localStorage` van de browser,
+zonder inlog. Handig voor ontwikkelen.
+
+### Supabase instellen
+
+1. Voer [`supabase/schema.sql`](supabase/schema.sql) uit in Supabase → **SQL Editor**. Het script kan veilig opnieuw worden uitgevoerd.
+2. Activeer bij **Authentication → Hooks → Before User Created** de Postgres-functie `public.hook_alleen_zibber`
+   (weigert aanmeldingen van buiten @zibber.nl).
+3. Zet bij **Authentication → Providers** Google aan en *Email* uit.
+4. Zet bij **Authentication → URL Configuration** de Site URL op het productie-adres en voeg `https://*.vercel.app/**` toe aan de Redirect URLs.
+5. Zet in Vercel (Production en Preview) de omgevingsvariabelen:
+   - `VITE_SUPABASE_URL` – de Project URL
+   - `VITE_SUPABASE_ANON_KEY` – de publishable/anon key
+
+Bij de eerste keer inloggen is de database leeg; de app vraagt dan of je de gegevens uit je browser wilt overnemen,
+met demo-data wilt starten of leeg wilt beginnen.
 
 ## Ontwikkelen
 
@@ -31,5 +51,8 @@ Het oorspronkelijke ontwerp staat in [`design/`](design/) (open `Zibber Marketin
 ## Structuur
 
 - `src/lib/` — datamodel, planningslogica (capaciteit, inbox, waarschuwingen), Jira-merge/CSV-import, opslag en acties (`store.ts`).
+  `remote.ts` en `remoteSync.ts` regelen opslaan in en realtime bijwerken vanuit Supabase.
+- `src/Root.tsx` — inloggen, laden en de eerste-keer-keuze; daarna de app.
+- `supabase/schema.sql` — tabellen, beveiliging en realtime voor Supabase.
 - `src/views/` — de vier hoofdschermen.
 - `src/components/` — sidebar, header, zijpaneel, modals en gedeelde UI-elementen.

@@ -10,8 +10,8 @@ import type { Opt } from './components/ui';
 import { PRIO, STORAGE_KEY, WEEKS_VISIBLE } from './lib/constants';
 import { addDays, fmt, iso, weekNo } from './lib/dates';
 import { derive, EMPTY_FILTERS, makeMatcher, type WarnEntry } from './lib/derive';
-import { usePlanning, useToast, type TaskForm } from './lib/store';
-import type { DragInfo, Filters, Item, SortKey, View } from './lib/types';
+import { usePlanning, useToast, type Backend, type TaskForm } from './lib/store';
+import type { AppData, DragInfo, Filters, Item, SortKey, View } from './lib/types';
 import { InboxView } from './views/InboxView';
 import { QuarterView } from './views/QuarterView';
 import { TeamView } from './views/TeamView';
@@ -50,9 +50,21 @@ function loadView(): View {
   return 'week';
 }
 
-export default function App() {
+export interface Account {
+  email: string;
+  name: string;
+  onSignOut: () => void;
+}
+
+interface Props {
+  initial: AppData;
+  backend: Backend;
+  account?: Account;
+}
+
+export default function App({ initial, backend, account }: Props) {
   const [toast, showToast] = useToast();
-  const pl = usePlanning(showToast);
+  const pl = usePlanning(showToast, initial, backend);
   const { data } = pl;
 
   const [view, setView] = useState<View>(loadView);
@@ -152,6 +164,7 @@ export default function App() {
         syncing={pl.syncing}
         onSync={() => pl.sync(true)}
         onSettings={() => setModal({ kind: 'settings' })}
+        account={account}
       />
 
       <main className="main">
