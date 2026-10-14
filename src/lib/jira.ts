@@ -37,6 +37,7 @@ function fromIssue(is: JiraIssue): IssueFields {
     jiraStatus: st,
     status,
     priority,
+    jiraAssignee: is.assignee || '',
     reporter: is.reporter || '',
     created: is.created || iso(new Date()),
     due: is.due || '',

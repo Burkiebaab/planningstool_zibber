@@ -198,6 +198,7 @@ export default function App({ initial, backend, account }: Props) {
               sort={sort}
               onSort={setSort}
               warningsOf={dv.warningsOf}
+              byId={dv.byId}
               tIso={dv.tIso}
               onSelect={setSelected}
               onDragStart={(e, id) => onDragStart(e, id)}
