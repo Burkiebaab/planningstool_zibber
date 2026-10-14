@@ -51,7 +51,7 @@ function RemoteRoot({ sb }: { sb: SupabaseClient }) {
     setAuthError(null);
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account' } },
+      options: { redirectTo: window.location.origin + window.location.pathname, queryParams: { prompt: 'select_account', hd: ALLOWED_DOMAIN } },
     });
     if (error) setAuthError('Inloggen is niet gelukt: ' + error.message);
   };

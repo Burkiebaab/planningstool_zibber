@@ -1,6 +1,6 @@
 import { CHANNELS, PRIO_TO_JIRA, REQS, STATUS_TO_JIRA } from './constants';
 import { iso } from './dates';
-import { blankItem, uid } from './planning';
+import { blankItem } from './planning';
 import type { AppData, Item, JiraIssue, Member, Priority, Status } from './types';
 
 type IssueFields = Omit<Partial<Item>, 'market' | 'channel' | 'requester'> & {
@@ -15,8 +15,15 @@ function fromIssue(is: JiraIssue): IssueFields {
   const labels = is.labels || [];
   const comps = is.components || [];
   const st = String(is.status || '');
-  const closed = /^(done|closed|gesloten|klaar|resolved|afgerond|cancelled)$/i.test(st.trim());
-  const status: Status = closed ? 'Klaar' : /progress|bezig/i.test(st) ? 'Bezig' : /review/i.test(st) ? 'Review' : 'To do';
+  const cat = String(is.statusCategory || '').toLowerCase();
+  const closed = cat === 'done' || /^(done|closed|gesloten|klaar|gereed|resolved|afgerond|cancelled|geannuleerd)$/i.test(st.trim());
+  const status: Status = closed
+    ? 'Klaar'
+    : /review/i.test(st)
+      ? 'Review'
+      : cat === 'indeterminate' || /progress|bezig|uitvoering/i.test(st)
+        ? 'Bezig'
+        : 'To do';
   const pr = String(is.priority || '');
   const priority: Priority = /highest|high|hoog|critical|blocker/i.test(pr) ? 'Hoog' : /low|laag/i.test(pr) ? 'Laag' : 'Normaal';
   const market = labels.map((l) => String(l).toUpperCase()).find((l) => ['NL', 'BE', 'DE'].includes(l));
@@ -97,8 +104,13 @@ export function mergeIssues(data: AppData, issues: JiraIssue[], demo: boolean) {
       if (!o.jiraClosed && f.jiraClosed) closed++;
       const n = { ...o, ...p } as Item;
       if (!n.assignee && asg) n.assignee = asg;
-      items[ix] = n;
-      updated++;
+      // Alleen vervangen als Jira echt iets anders zegt. Zo blijft het item ongemoeid (en wordt het niet
+      // opnieuw opgeslagen) en overschrijft een sync nooit een gelijktijdige wijziging van een collega.
+      const keys = Object.keys(n) as (keyof Item)[];
+      if (keys.some((k) => JSON.stringify(n[k]) !== JSON.stringify(o[k]))) {
+        items[ix] = n;
+        updated++;
+      }
     } else {
       if (f.project && !projects.includes(f.project)) projects.push(f.project);
       items.unshift({
@@ -107,7 +119,8 @@ export function mergeIssues(data: AppData, issues: JiraIssue[], demo: boolean) {
         market: f.market || 'Alle',
         channel: f.channel || '',
         requester: f.requester || '',
-        id: uid(),
+        // Vaste id per ticket: als twee collega's tegelijk synchroniseren, ontstaat er geen dubbel item.
+        id: 'jira-' + f.key,
         source: 'jira',
         assignee: asg,
         isNew: true,

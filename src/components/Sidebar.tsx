@@ -1,6 +1,7 @@
 import type { Account } from '../App';
 import { hhmm } from '../lib/dates';
 import { initialsOf } from '../lib/planning';
+import type { JiraState } from '../lib/store';
 import type { Settings, View } from '../lib/types';
 
 export const VIEWS: [View, string][] = [
@@ -20,9 +21,13 @@ interface Props {
   onSync: () => void;
   onSettings: () => void;
   account?: Account;
+  jira: JiraState;
 }
 
-export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing, onSync, onSettings, account }: Props) {
+export const JIRA_DOT: Record<JiraState['mode'], string> = { live: '#7FD1A8', demo: '#7FD1A8', off: '#E2B65C', error: '#E08A7C' };
+const JIRA_LABEL: Record<JiraState['mode'], string> = { live: 'Live gekoppeld', demo: 'Demo-koppeling', off: 'Niet gekoppeld', error: 'Fout bij ophalen' };
+
+export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing, onSync, onSettings, account, jira }: Props) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -40,9 +45,9 @@ export function Sidebar({ view, onView, inboxCount, settings, lastSync, syncing,
       <div style={{ flex: 1 }} />
       <div className="sync-card">
         <div className="sync-head">
-          <span className="dot" style={{ background: settings.demoSim ? '#7FD1A8' : '#E2B65C' }} />
+          <span className="dot" style={{ background: JIRA_DOT[jira.mode] }} />
           <span className="sync-title">Jira</span>
-          <span className="sync-mode">{settings.demoSim ? 'Demo-koppeling' : 'Niet gekoppeld'}</span>
+          <span className="sync-mode">{JIRA_LABEL[jira.mode]}</span>
         </div>
         <div className="sync-text">
           Laatst gesynchroniseerd om {hhmm(new Date(lastSync || Date.now()))}

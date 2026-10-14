@@ -34,6 +34,21 @@ zonder inlog. Handig voor ontwikkelen.
    - `VITE_SUPABASE_URL` – de Project URL
    - `VITE_SUPABASE_ANON_KEY` – de publishable/anon key
 
+### Jira koppelen
+
+De Vercel-functie [`api/jira-sync.ts`](api/jira-sync.ts) haalt tickets op uit Jira. De Jira-sleutel staat alleen op de
+server; alleen ingelogde @zibber.nl-gebruikers kunnen de functie aanroepen. Zet in Vercel (Production en Preview):
+
+- `JIRA_SITE` – bijv. `zien24.atlassian.net`
+- `JIRA_EMAIL` – e-mailadres van het Jira-account voor de koppeling
+- `JIRA_API_TOKEN` – API-token van dat account (id.atlassian.com → Security → API tokens)
+
+Welke tickets binnenkomen bepaalt de JQL in de app (Instellingen), standaard
+`project = MKT AND statusCategory != Done ORDER BY created DESC`. De app haalt op bij openen, elke paar minuten zolang
+iemand de app open heeft en via "Nu ophalen". Tickets die al in de planning staan maar niet meer in de resultaten
+voorkomen, worden los gecontroleerd zodat afgeronde of verwijderde tickets als gesloten worden gemarkeerd.
+Zonder deze variabelen valt de app terug op de gesimuleerde demo-koppeling of CSV-import.
+
 Bij de eerste keer inloggen is de database leeg; de app vraagt dan of je de gegevens uit je browser wilt overnemen,
 met demo-data wilt starten of leeg wilt beginnen.
 

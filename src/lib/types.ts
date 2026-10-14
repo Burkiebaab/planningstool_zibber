@@ -86,6 +86,8 @@ export interface JiraIssue {
   summary: string;
   issueType: string;
   status: string;
+  /** Statuscategorie uit Jira: 'new', 'indeterminate' of 'done'. Betrouwbaarder dan de (vertaalde) statusnaam. */
+  statusCategory?: string;
   priority: string;
   assignee?: string;
   reporter: string;
