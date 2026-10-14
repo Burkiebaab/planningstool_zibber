@@ -2,7 +2,7 @@ import type { DragEvent, MouseEvent, ReactNode } from 'react';
 import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { capOf, dayLabel, isDone, memberInitials, projColor, recurH } from '../lib/planning';
+import { capOf, dayLabel, initialsOf, isDone, memberInitials, projColor, recurH } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -136,6 +136,7 @@ export function WeekView(p: Props) {
               <div className="rail-card-head">
                 <Dot color={d.prioColor} style={{ marginTop: 5 }} />
                 <span className="clamp2">{i.title}</span>
+                <AssigneeBadge item={i} byId={dv.byId} />
               </div>
               <div className="rail-card-meta">
                 <span className="src-tag src-tag-sm">{i.source === 'jira' ? 'Jira' : 'Handmatig'}</span>
@@ -217,5 +218,17 @@ function MemberRow({ m, onMenu, children }: { m: Member; onMenu: (e: MouseEvent)
       </div>
       {children}
     </>
+  );
+}
+
+/** Kleine initialen van de uitvoerder: teamlid in eigen kleur, Jira-assignee in grijs, anders niets. */
+function AssigneeBadge({ item, byId }: { item: Item; byId: Record<string, Member> }) {
+  const m = byId[item.assignee || ''];
+  const name = m ? m.name : item.jiraAssignee;
+  if (!name) return null;
+  return (
+    <span className="rail-assignee" title={'Uitvoerder: ' + name + (m ? '' : ' (Jira)')}>
+      <Avatar color={m ? m.color : '#9AA8BF'} initials={m ? memberInitials(m) : initialsOf(name)} size={20} fontSize={9} />
+    </span>
   );
 }

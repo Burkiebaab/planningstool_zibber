@@ -188,6 +188,7 @@ export default function App({ initial, backend, account }: Props) {
           }}
           projects={dv.projects}
           persons={dv.personList}
+          assignees={dv.assigneeOptions}
         />
 
         <div className="content">

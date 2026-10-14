@@ -869,6 +869,10 @@ textarea:focus {
   font-weight: 600;
   line-height: 1.35;
 }
+.rail-assignee {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .rail-card-meta {
   display: flex;
   gap: 6px;

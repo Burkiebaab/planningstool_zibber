@@ -19,6 +19,7 @@ interface Props {
   onClear: () => void;
   projects: string[];
   persons: string[];
+  assignees: Opt[];
 }
 
 export function Header(p: Props) {
@@ -28,6 +29,7 @@ export function Header(p: Props) {
     ['channel', [{ value: '', label: 'Alle kanalen' }, ...CHANNELS]],
     ['market', [{ value: '', label: 'Alle markten' }, 'NL', 'BE', 'DE']],
     ['requester', [{ value: '', label: 'Alle aanvragers' }, ...p.persons]],
+    ['assignee', [{ value: '', label: 'Alle uitvoerders' }, ...p.assignees]],
   ];
   const filtersOn = Object.values(p.filters).some(Boolean) || !!p.search.trim();
   const n = p.warnList.length;

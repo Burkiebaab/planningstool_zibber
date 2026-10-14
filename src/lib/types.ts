@@ -117,6 +117,8 @@ export interface Filters {
   channel: string;
   market: string;
   requester: string;
+  /** 'm:<teamlid-id>', 'j:<naam in Jira>' of '__none' (zie assigneeKey). */
+  assignee: string;
 }
 
 export interface DragInfo {
