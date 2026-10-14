@@ -49,6 +49,11 @@ iemand de app open heeft en via "Nu ophalen". Tickets die al in de planning staa
 voorkomen, worden los gecontroleerd zodat afgeronde of verwijderde tickets als gesloten worden gemarkeerd.
 Zonder deze variabelen valt de app terug op de gesimuleerde demo-koppeling of CSV-import.
 
+**Uren-inschatting:** de tool is leidend. Een schatting uit Jira (*Original estimate*) wordt overgenomen zolang de
+uren in de tool niet zijn aangepast. Pas je de uren in de tool aan, dan blijft die waarde staan en wordt de
+*Original estimate* in Jira automatisch bijgewerkt. Daarvoor moet het Jira-account tickets mogen bewerken en moet
+*Original estimate* (tijdregistratie) op het ticketscherm staan.
+
 Bij de eerste keer inloggen is de database leeg; de app vraagt dan of je de gegevens uit je browser wilt overnemen,
 met demo-data wilt starten of leeg wilt beginnen.
 

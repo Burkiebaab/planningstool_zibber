@@ -1344,6 +1344,11 @@ textarea:focus {
   font-weight: 600;
   color: var(--text-2);
 }
+.field-hint {
+  color: var(--muted-2);
+  font-size: 12px;
+  font-weight: 500;
+}
 .field-error {
   color: var(--danger);
   font-size: 12px;

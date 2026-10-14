@@ -5,7 +5,7 @@ import { buildDemo, demoPool, freshData, migrateSettings } from './demo';
 import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
 import { allocSum, blankItem, estimateOf, initialsOf, uid } from './planning';
-import { fetchLiveIssues } from './jiraLive';
+import { fetchLiveIssues, pushEstimate } from './jiraLive';
 import { useRemoteSync } from './remoteSync';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
@@ -201,6 +201,27 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     },
     [toast, remote],
   );
+
+  // Uren aangepast in de tool: na een korte pauze (klaar met typen) ook in Jira bijwerken.
+  const jiraRef = useRef(jira);
+  jiraRef.current = jira;
+  const estimateTimers = useRef<Record<string, number>>({});
+  const setEstimate = (id: string, v: number | null) => {
+    updItem(id, { estimate: v });
+    const i = getItem(id);
+    if (!remote || !i || i.source !== 'jira' || i.demo || jiraRef.current.mode !== 'live') return;
+    window.clearTimeout(estimateTimers.current[id]);
+    if (v == null || !(v > 0)) return;
+    estimateTimers.current[id] = window.setTimeout(async () => {
+      const cur = getItem(id);
+      if (!cur || cur.estimate !== v || cur.jiraEstimate === v) return;
+      const r = await pushEstimate(cur.key, v);
+      if (r.ok) {
+        updItem(id, { jiraEstimate: v });
+        toast(`Uren bijgewerkt in Jira (${cur.key}: ${fmtH(v)}u)`);
+      } else toast('Uren niet bijgewerkt in Jira: ' + r.message);
+    }, 1500);
+  };
 
   // Met database: direct bij het openen tickets ophalen.
   useEffect(() => {
@@ -458,6 +479,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     syncing,
     jira,
     updItem,
+    setEstimate,
     setSetting,
     sync,
     importCsv,

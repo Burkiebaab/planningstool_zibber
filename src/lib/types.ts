@@ -30,6 +30,8 @@ export interface Item {
   start: string;
   due: string;
   estimate: number | null;
+  /** Laatst bekende schatting in Jira. Zo zien we of de uren in de tool zijn aangepast. */
+  jiraEstimate?: number | null;
   labels: string[];
   components: string[];
   epic: string;

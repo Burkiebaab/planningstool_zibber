@@ -10,6 +10,9 @@
  *   voorkomen (meestal: inmiddels afgerond). Die worden los opgehaald zodat de planning
  *   ziet dat ze gesloten zijn.
  *
+ * POST /api/jira-sync   body: { action: 'estimate', key: string, hours: number }
+ * Zet de "Original estimate" van één ticket in Jira (uren aangepast in de planningstool).
+ *
  * Dit bestand is bewust zelfstandig (geen imports uit src/), zodat Vercel het los kan draaien.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -179,9 +182,35 @@ async function fetchKeys(cfg: Cfg, keys: string[]) {
   return { found, missing };
 }
 
-function readBody(req: Req): { jql?: unknown; keys?: unknown } {
+/** Zet de Original estimate van één ticket. Probeert eerst zonder e-mailmeldingen aan volgers. */
+async function updateEstimate(cfg: Cfg, key: string, hours: number) {
+  const body = JSON.stringify({ fields: { timetracking: { originalEstimate: Math.round(hours * 60) + 'm' } } });
+  const put = (quiet: boolean) =>
+    fetch(cfg.site + '/rest/api/3/issue/' + encodeURIComponent(key) + (quiet ? '?notifyUsers=false' : ''), {
+      method: 'PUT',
+      headers: { Authorization: cfg.auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body,
+    });
+  let r = await put(true);
+  // Meldingen uitzetten mag alleen een Jira-beheerder; anders gewoon met meldingen.
+  if (r.status === 403) r = await put(false);
+  if (r.status === 204 || r.ok) return;
+  if (r.status === 401) throw new HttpError(502, 'jira_auth', 'Jira weigert de inloggegevens. Controleer JIRA_EMAIL en JIRA_API_TOKEN.');
+  if (r.status === 403) throw new HttpError(502, 'jira_forbidden', 'Het Jira-account mag dit ticket niet bewerken.');
+  if (r.status === 404) throw new HttpError(404, 'not_found', 'Ticket ' + key + ' bestaat niet (meer) in Jira.');
+  if (r.status === 400) {
+    const e = (await r.json().catch(() => ({}))) as { errors?: Record<string, string>; errorMessages?: string[] };
+    const detail = [...Object.values(e.errors || {}), ...(e.errorMessages || [])].join(' ');
+    throw new HttpError(400, 'estimate_field', 'Jira accepteert de schatting niet. Staat "Original estimate" (tijdregistratie) aan op het ticketscherm? ' + detail);
+  }
+  throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
+}
+
+type Body = { action?: unknown; jql?: unknown; keys?: unknown; key?: unknown; hours?: unknown };
+
+function readBody(req: Req): Body {
   const b = req.body;
-  if (b && typeof b === 'object') return b as { jql?: unknown; keys?: unknown };
+  if (b && typeof b === 'object') return b as Body;
   if (typeof b === 'string') {
     try {
       return JSON.parse(b);
@@ -198,6 +227,16 @@ export default async function handler(req: Req, res: Res) {
     await verifyUser(req);
     const cfg = jiraConfig();
     const body = readBody(req);
+
+    if (body.action === 'estimate') {
+      const key = String(body.key || '').trim().toUpperCase();
+      const hours = Number(body.hours);
+      if (!/^[A-Z][A-Z0-9_]*-\d+$/.test(key)) throw new HttpError(400, 'bad_request', 'Ongeldig ticketnummer.');
+      if (!(hours > 0 && hours <= 10000)) throw new HttpError(400, 'bad_request', 'Ongeldig aantal uren.');
+      await updateEstimate(cfg, key, hours);
+      return send(res, 200, { ok: true, key, hours });
+    }
+
     const jql = typeof body.jql === 'string' && body.jql.trim() ? body.jql.trim().slice(0, 2000) : DEFAULT_JQL;
     const keys = (Array.isArray(body.keys) ? body.keys : [])
       .map((k) => String(k).trim().toUpperCase())
