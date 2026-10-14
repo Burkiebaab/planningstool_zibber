@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { DEFAULT_SETTINGS } from './demo';
+import { migrateSettings } from './demo';
 import { blankItem } from './planning';
 import type { AppData, Item, Member, Settings } from './types';
 
@@ -90,7 +90,7 @@ async function selectAll<T>(sb: SupabaseClient, table: string, columns: string, 
 export const normalizeItem = (data: Partial<Item>): Item => ({ ...blankItem(), ...data }) as Item;
 export const normalizeMember = (data: Member): Member => ({ ...data, workdays: data.workdays || [], vacations: data.vacations || [] });
 export const normalizeSettingsDoc = (doc: Partial<SettingsDoc> | null | undefined): SettingsDoc => ({
-  settings: { ...DEFAULT_SETTINGS, ...(doc?.settings || {}) },
+  settings: migrateSettings((doc?.settings || {}) as Settings),
   syncIdx: doc?.syncIdx || 0,
   lastSync: doc?.lastSync || new Date().toISOString(),
 });

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { STATUS_TO_JIRA, STORAGE_KEY } from './constants';
 import { addDays, fmtH, iso, monday, toDate, weekNo } from './dates';
-import { buildDemo, demoPool, freshData } from './demo';
+import { buildDemo, demoPool, freshData, migrateSettings } from './demo';
 import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
 import { allocSum, blankItem, estimateOf, initialsOf, uid } from './planning';
+import { fetchLiveIssues } from './jiraLive';
 import { useRemoteSync } from './remoteSync';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
@@ -38,7 +39,7 @@ export interface MemberForm extends Omit<Member, 'id' | 'hours'> {
 export function readLocal(): AppData | null {
   try {
     const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (d && d.members && d.items) return d;
+    if (d && d.members && d.items) return { ...d, settings: migrateSettings(d.settings || {}) };
   } catch {
     /* lege of kapotte opslag */
   }
@@ -54,6 +55,12 @@ function save(d: AppData) {
   } catch {
     /* opslag vol of geblokkeerd */
   }
+}
+
+/** Stand van de Jira-koppeling: live, gesimuleerd (demo), niet gekoppeld of een fout. */
+export interface JiraState {
+  mode: 'live' | 'demo' | 'off' | 'error';
+  message?: string;
 }
 
 /** Waar de planning wordt bewaard: in deze browser, of in Supabase namens een ingelogde gebruiker. */
@@ -109,20 +116,73 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     setData((d) => ({ ...d, settings: { ...d.settings, [k]: v } }));
 
   // ── Jira ──────────────────────────────────────────────────────────────
+  const [jira, setJira] = useState<JiraState>({ mode: initial.settings.demoSim ? 'demo' : 'off' });
+  const remote = backend.kind === 'remote';
+
   const sync = useCallback(
     (manual: boolean) => {
       if (syncingRef.current) return;
       syncingRef.current = true;
       setSyncing(true);
-      window.setTimeout(() => {
-        const d = dataRef.current;
+      const done = () => {
         syncingRef.current = false;
         setSyncing(false);
+      };
+      const announce = (added: number, closed: number) => {
+        if (added || closed) {
+          toast(
+            [
+              added ? added + (added > 1 ? ' nieuwe aanvragen' : ' nieuwe aanvraag') + ' uit Jira' : '',
+              closed ? closed + (closed > 1 ? ' tickets gesloten' : ' ticket gesloten') + ' in Jira' : '',
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          );
+        } else if (manual) toast('Alles up-to-date. Geen nieuwe aanvragen.');
+      };
+
+      void (async () => {
+        if (remote) {
+          const before = dataRef.current;
+          const keys = before.items.filter((i) => i.source === 'jira' && !i.jiraClosed && !i.demo).map((i) => i.key);
+          const res = await fetchLiveIssues(before.settings.jql, keys);
+          if (res.ok) {
+            // Samenvoegen met de nieuwste stand: tijdens het ophalen kan er al iets gewijzigd zijn.
+            const d = dataRef.current;
+            const r = mergeIssues(d, res.issues, false);
+            const missing = new Set(res.missing);
+            let gone = 0;
+            const items = r.data.items.map((i) => {
+              if (i.source !== 'jira' || i.jiraClosed || !missing.has(i.key)) return i;
+              gone++;
+              return { ...i, jiraClosed: true, status: 'Klaar' as Status, jiraStatus: 'Niet gevonden in Jira' };
+            });
+            const settings = res.site && res.site !== d.settings.site ? { ...d.settings, site: res.site } : d.settings;
+            setData({ ...r.data, items, settings, lastSync: new Date().toISOString() });
+            setJira({ mode: 'live' });
+            done();
+            announce(r.added, r.closed + gone);
+            return;
+          }
+          if (res.code !== 'not_configured') {
+            setJira({ mode: 'error', message: res.message });
+            done();
+            if (manual) toast(res.message);
+            return;
+          }
+        }
+
+        // Geen live koppeling: gesimuleerde demo-koppeling, of niets.
+        await new Promise((ok) => window.setTimeout(ok, 800));
+        const d = dataRef.current;
+        done();
         if (!d.settings.demoSim) {
+          setJira({ mode: 'off' });
           setData((x) => ({ ...x, lastSync: new Date().toISOString() }));
-          if (manual) toast('Geen live Jira-verbinding. Importeer een CSV-export via Instellingen.');
+          if (manual) toast('Jira is nog niet gekoppeld. Importeer tussentijds een CSV-export via Instellingen.');
           return;
         }
+        setJira({ mode: 'demo' });
         const issues = d.items.filter((i) => i.source === 'jira').map((i) => toIssue(i, d.members));
         const pool = demoPool();
         let idx = d.syncIdx || 0;
@@ -136,20 +196,18 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
         }
         const r = mergeIssues(d, issues, true);
         setData({ ...r.data, syncIdx: idx, lastSync: new Date().toISOString() });
-        if (r.added || r.closed) {
-          toast(
-            [
-              r.added ? r.added + (r.added > 1 ? ' nieuwe aanvragen' : ' nieuwe aanvraag') + ' uit Jira' : '',
-              r.closed ? r.closed + ' ticket gesloten in Jira' : '',
-            ]
-              .filter(Boolean)
-              .join(' · '),
-          );
-        } else if (manual) toast('Alles up-to-date. Geen nieuwe aanvragen.');
-      }, 800);
+        announce(r.added, r.closed);
+      })();
     },
-    [toast],
+    [toast, remote],
   );
+
+  // Met database: direct bij het openen tickets ophalen.
+  useEffect(() => {
+    if (!remote) return;
+    const t = window.setTimeout(() => syncRef.current(false), 1200);
+    return () => window.clearTimeout(t);
+  }, [remote]);
 
   const syncRef = useRef(sync);
   syncRef.current = sync;
@@ -398,6 +456,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
   return {
     data,
     syncing,
+    jira,
     updItem,
     setSetting,
     sync,

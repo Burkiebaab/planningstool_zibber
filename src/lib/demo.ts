@@ -3,14 +3,24 @@ import { addDays, iso, monday, toDate } from './dates';
 import { blankItem } from './planning';
 import type { AppData, Item, JiraIssue, Member, Settings } from './types';
 
+export const DEFAULT_JQL = 'project = MKT AND statusCategory != Done ORDER BY created DESC';
+
 export const DEFAULT_SETTINGS: Settings = {
-  site: 'zibber.atlassian.net',
+  site: 'zien24.atlassian.net',
   projects: 'MKT',
-  jql: 'project = MKT AND issuetype = Intake ORDER BY created DESC',
+  jql: DEFAULT_JQL,
   interval: 5,
   auto: true,
   demoSim: true,
 };
+
+/** Zet de standaardwaarden van de eerste versie om naar de echte Jira van Zibber. */
+export function migrateSettings(s: Settings): Settings {
+  const out = { ...DEFAULT_SETTINGS, ...s };
+  if (out.site === 'zibber.atlassian.net') out.site = DEFAULT_SETTINGS.site;
+  if (out.jql === 'project = MKT AND issuetype = Intake ORDER BY created DESC') out.jql = DEFAULT_JQL;
+  return out;
+}
 
 /** Voorbeeldteam en -werk, relatief aan vandaag zodat de demo altijd actueel oogt. */
 export function buildDemo(): { members: Member[]; items: Item[]; projects: string[] } {

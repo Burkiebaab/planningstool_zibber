@@ -165,6 +165,7 @@ export default function App({ initial, backend, account }: Props) {
         onSync={() => pl.sync(true)}
         onSettings={() => setModal({ kind: 'settings' })}
         account={account}
+        jira={pl.jira}
       />
 
       <main className="main">
@@ -253,7 +254,7 @@ export default function App({ initial, backend, account }: Props) {
 
       {warnOpen && <div className="click-away" style={{ zIndex: 44 }} onClick={() => setWarnOpen(false)} />}
 
-      {sel && <ItemPanel key={sel.id} item={sel} dv={dv} site={data.settings.site} weekOpts={weekOpts} pl={pl} onClose={() => setSelected(null)} />}
+      {sel && <ItemPanel key={sel.id} item={sel} dv={dv} site={data.settings.site} jiraLive={pl.jira.mode === 'live'} weekOpts={weekOpts} pl={pl} onClose={() => setSelected(null)} />}
 
       {modal?.kind === 'task' && <TaskModal preset={modal.preset} dv={dv} weekOpts={weekOpts} onSave={pl.saveTask} onClose={closeModal} />}
       {modal?.kind === 'member' && (
@@ -271,6 +272,7 @@ export default function App({ initial, backend, account }: Props) {
       {modal?.kind === 'settings' && (
         <SettingsModal
           settings={data.settings}
+          jira={pl.jira}
           lastSync={data.lastSync}
           syncing={pl.syncing}
           onSync={() => pl.sync(true)}

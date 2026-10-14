@@ -18,12 +18,13 @@ interface Props {
   item: Item;
   dv: Derived;
   site: string;
+  jiraLive: boolean;
   weekOpts: Opt[];
   pl: Planning;
   onClose: () => void;
 }
 
-export function ItemPanel({ item: sel, dv, site, weekOpts, pl, onClose }: Props) {
+export function ItemPanel({ item: sel, dv, site, jiraLive, weekOpts, pl, onClose }: Props) {
   const memberOpts: Opt[] = dv.active.map((m) => ({ value: m.id, label: m.name }));
   const assigneeOpts: Opt[] = [{ value: '', label: 'Niemand' }, ...memberOpts];
   const [spread, setSpread] = useState({ m: sel.assignee || dv.active[0]?.id || '', w: dv.mon0i, n: 2 });
@@ -225,9 +226,12 @@ export function ItemPanel({ item: sel, dv, site, weekOpts, pl, onClose }: Props)
               Open in Jira ↗
             </a>
           ) : (
-            <button type="button" className="btn btn-md" onClick={() => pl.convertToJira(sel.id)}>
-              Omzetten naar Jira-ticket
-            </button>
+            // Met een live koppeling zou een gesimuleerd ticketnummer kunnen botsen met een echt ticket.
+            !jiraLive && (
+              <button type="button" className="btn btn-md" onClick={() => pl.convertToJira(sel.id)}>
+                Omzetten naar Jira-ticket
+              </button>
+            )
           )}
           <div style={{ flex: 1 }} />
           {isJira ? (
