@@ -1583,6 +1583,36 @@ select.input-xs {
   font-size: 15px;
   font-weight: 700;
 }
+.convert-confirm {
+  margin: 0 22px 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--blue-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.convert-confirm-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+.convert-confirm-text strong {
+  font-size: 14px;
+  color: var(--navy);
+}
+.convert-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .panel-foot {
   padding: 14px 22px;
   border-top: 1px solid var(--line);

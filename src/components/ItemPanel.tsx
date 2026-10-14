@@ -3,7 +3,7 @@ import { CHANNELS, MARKETS, PRIORITIES, STATUSES } from '../lib/constants';
 import { fmt, fmtH } from '../lib/dates';
 import type { Derived } from '../lib/derive';
 import { allocSum, estimateOf, personOf } from '../lib/planning';
-import type { Planning } from '../lib/store';
+import type { JiraState, Planning } from '../lib/store';
 import type { Item, Priority, Recurring, Status } from '../lib/types';
 import { Field, NewBadge, NumberInput, Options, SrcTag, type Opt } from './ui';
 
@@ -18,13 +18,17 @@ interface Props {
   item: Item;
   dv: Derived;
   site: string;
-  jiraLive: boolean;
+  jiraMode: JiraState['mode'];
+  onSelect: (id: string) => void;
   weekOpts: Opt[];
   pl: Planning;
   onClose: () => void;
 }
 
-export function ItemPanel({ item: sel, dv, site, jiraLive, weekOpts, pl, onClose }: Props) {
+export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, pl, onClose }: Props) {
+  const jiraLive = jiraMode === 'live';
+  const [confirmConvert, setConfirmConvert] = useState(false);
+  const [converting, setConverting] = useState(false);
   const memberOpts: Opt[] = dv.active.map((m) => ({ value: m.id, label: m.name }));
   const assigneeOpts: Opt[] = [{ value: '', label: 'Niemand' }, ...memberOpts];
   const [spread, setSpread] = useState({ m: sel.assignee || dv.active[0]?.id || '', w: dv.mon0i, n: 2 });
@@ -35,6 +39,9 @@ export function ItemPanel({ item: sel, dv, site, jiraLive, weekOpts, pl, onClose
   const am = dv.byId[sel.assignee || ''];
   const warnings = dv.warningsOf(sel.id);
   const isJira = sel.source === 'jira';
+  // Live (of tijdelijk fout): echt ticket aanmaken. Demo: gesimuleerd nummer. Niet gekoppeld: niet tonen.
+  const realConvert = jiraMode === 'live' || jiraMode === 'error';
+  const canConvert = !sel.recurring && (realConvert || jiraMode === 'demo');
   const jiraUrl = 'https://' + site + '/browse/' + sel.key;
   const projectOpts = dv.projects.includes(sel.project) || !sel.project ? dv.projects : [sel.project, ...dv.projects];
 
@@ -223,15 +230,43 @@ export function ItemPanel({ item: sel, dv, site, jiraLive, weekOpts, pl, onClose
           )}
         </div>
 
+        {confirmConvert && (
+          <div className="convert-confirm">
+            <div className="convert-confirm-text">
+              <strong>Ticket aanmaken in Jira?</strong>
+              <span>
+                Er komt een nieuw ticket in project MKT met de titel, notitie, aanvrager, deadline, uren, prioriteit en markt/kanaal van deze taak. Je planning blijft staan.
+              </span>
+            </div>
+            <div className="convert-confirm-actions">
+              <button type="button" className="btn btn-md" disabled={converting} onClick={() => setConfirmConvert(false)}>
+                Annuleren
+              </button>
+              <button
+                type="button"
+                className="btn btn-md btn-primary"
+                disabled={converting || !sel.title.trim()}
+                onClick={async () => {
+                  setConverting(true);
+                  const newId = await pl.convertToJira(sel.id);
+                  setConverting(false);
+                  setConfirmConvert(false);
+                  if (newId && newId !== sel.id) onSelect(newId);
+                }}
+              >
+                {converting ? 'Aanmaken…' : 'Ticket aanmaken'}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="panel-foot">
           {isJira ? (
             <a className="btn btn-md btn-link" href={jiraUrl} target="_blank" rel="noopener">
               Open in Jira ↗
             </a>
           ) : (
-            // Met een live koppeling zou een gesimuleerd ticketnummer kunnen botsen met een echt ticket.
-            !jiraLive && (
-              <button type="button" className="btn btn-md" onClick={() => pl.convertToJira(sel.id)}>
+            canConvert && (
+              <button type="button" className="btn btn-md" disabled={converting} onClick={() => (realConvert ? setConfirmConvert(true) : void pl.convertToJira(sel.id))}>
                 Omzetten naar Jira-ticket
               </button>
             )
