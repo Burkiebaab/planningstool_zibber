@@ -19,6 +19,9 @@
  * POST /api/jira-sync   body: { action: 'parent', key: string, parent: string | null }
  * Zet de epic (parent) van één ticket; null haalt het ticket uit de epic.
  *
+ * POST /api/jira-sync   body: { action: 'comments', key }        → laatste opmerkingen van een ticket
+ * POST /api/jira-sync   body: { action: 'comment', key, text }   → opmerking plaatsen in Jira
+ *
  * Het antwoord op een sync bevat ook `epics`: de open epics van JIRA_PROJECT. Die gebruikt de
  * planningstool als lijst met projecten.
  *
@@ -30,7 +33,8 @@ const ALLOWED_DOMAIN = 'zibber.nl';
 const DEFAULT_JQL = 'project = MKT AND issuetype != Epic AND statusCategory != Done ORDER BY created DESC';
 const MAX_ISSUES = 1000;
 const MAX_KEYS = 100;
-const FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'created', 'duedate', 'timeoriginalestimate', 'labels', 'components', 'parent'];
+const FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'created', 'duedate', 'timeoriginalestimate', 'labels', 'components', 'parent', 'description'];
+const MAX_TEXT = 8000;
 
 type Req = IncomingMessage & { body?: unknown };
 type Res = ServerResponse;
@@ -51,6 +55,7 @@ interface JiraIssue {
   components: string[];
   epic: string;
   epicKey: string;
+  description: string;
 }
 
 class HttpError extends Error {
@@ -89,12 +94,12 @@ async function verifyUser(req: Req) {
   if (!sbUrl || !sbKey) throw new HttpError(500, 'supabase_not_configured', 'Supabase-instellingen ontbreken op de server.');
   const r = await fetch(sbUrl + '/auth/v1/user', { headers: { apikey: sbKey, Authorization: 'Bearer ' + token } });
   if (!r.ok) throw new HttpError(401, 'unauthorized', 'Sessie is verlopen. Log opnieuw in.');
-  const user = (await r.json()) as { email?: string; app_metadata?: { providers?: string[] } };
+  const user = (await r.json()) as { email?: string; app_metadata?: { providers?: string[] }; user_metadata?: { full_name?: string; name?: string } };
   const email = String(user.email || '').toLowerCase();
   if (!email.endsWith('@' + ALLOWED_DOMAIN) || !(user.app_metadata?.providers || []).includes('google')) {
     throw new HttpError(403, 'forbidden', 'Geen toegang.');
   }
-  return { email };
+  return { email, name: user.user_metadata?.full_name || user.user_metadata?.name || email };
 }
 
 const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/;
@@ -139,9 +144,57 @@ type RawIssue = {
     timeoriginalestimate?: number | null;
     labels?: string[];
     components?: { name?: string }[];
+    description?: AdfNode | null;
     parent?: { key?: string; fields?: { summary?: string } };
   };
 };
+
+type AdfNode = { type?: string; text?: string; content?: AdfNode[]; attrs?: Record<string, unknown> };
+
+/** Zet Atlassian Document Format (omschrijvingen, opmerkingen) om naar platte tekst met regelafbrekingen. */
+function adfToText(node: AdfNode | null | undefined): string {
+  if (!node) return '';
+  const kids = (sep = '') => (node.content || []).map((c) => adfToText(c)).join(sep);
+  const a = node.attrs || {};
+  switch (node.type) {
+    case 'text':
+      return node.text || '';
+    case 'hardBreak':
+      return '\n';
+    case 'mention':
+    case 'emoji':
+      return String(a.text || a.shortName || '');
+    case 'inlineCard':
+    case 'blockCard':
+      return String(a.url || '');
+    case 'paragraph':
+    case 'heading':
+      return kids() + '\n\n';
+    case 'bulletList':
+      return (node.content || []).map((li) => '• ' + adfToText(li).trim()).join('\n') + '\n\n';
+    case 'orderedList':
+      return (node.content || []).map((li, k) => k + 1 + '. ' + adfToText(li).trim()).join('\n') + '\n\n';
+    case 'listItem':
+      return kids().replace(/\n\n+/g, '\n');
+    case 'blockquote':
+      return kids().trim().split('\n').map((l) => '> ' + l).join('\n') + '\n\n';
+    case 'codeBlock':
+      return kids() + '\n\n';
+    case 'rule':
+      return '———\n\n';
+    case 'tableRow':
+      return (node.content || []).map((c) => adfToText(c).trim()).join(' | ') + '\n';
+    case 'table':
+      return kids() + '\n';
+    case 'mediaSingle':
+    case 'mediaGroup':
+      return '[bijlage]\n\n';
+    default:
+      return kids();
+  }
+}
+
+const cleanText = (s: string) => s.replace(/\n{3,}/g, '\n\n').trim();
 
 function mapIssue(i: RawIssue): JiraIssue {
   const f = i.fields || {};
@@ -163,6 +216,7 @@ function mapIssue(i: RawIssue): JiraIssue {
     components: (f.components || []).map((c) => c.name || '').filter(Boolean),
     epic: f.parent?.fields?.summary || '',
     epicKey: f.parent?.key || '',
+    description: cleanText(adfToText(f.description)).slice(0, MAX_TEXT),
   };
 }
 
@@ -242,6 +296,34 @@ async function fetchEpics(cfg: Cfg): Promise<{ key: string; name: string }[] | n
     console.error('Epics ophalen mislukt', err);
     return null;
   }
+}
+
+type RawComment = { id: string; author?: { displayName?: string }; created?: string; body?: AdfNode };
+
+const mapComment = (c: RawComment) => ({ id: c.id, author: c.author?.displayName || 'Onbekend', created: c.created || '', text: cleanText(adfToText(c.body)).slice(0, MAX_TEXT) });
+
+/** De laatste 20 opmerkingen van een ticket, nieuwste eerst. */
+async function getComments(cfg: Cfg, key: string) {
+  const r = await jira(cfg, '/rest/api/3/issue/' + encodeURIComponent(key) + '/comment?orderBy=-created&maxResults=20');
+  if (r.status === 404) throw new HttpError(404, 'not_found', 'Ticket ' + key + ' bestaat niet (meer) in Jira.');
+  if (!r.ok) throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
+  const page = (await r.json()) as { comments?: RawComment[] };
+  return (page.comments || []).map(mapComment);
+}
+
+/** Plaatst een opmerking; vermeldt wie hem via de planningstool plaatste (het Jira-account is altijd de koppeling). */
+async function addComment(cfg: Cfg, key: string, text: string, userName: string) {
+  const body = adf(text + '\n\n— geplaatst via Zibber Marketingplanning door ' + userName);
+  const r = await fetch(cfg.site + '/rest/api/3/issue/' + encodeURIComponent(key) + '/comment', {
+    method: 'POST',
+    headers: { Authorization: cfg.auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  });
+  if (r.status === 401) throw new HttpError(502, 'jira_auth', 'Jira weigert de inloggegevens. Controleer JIRA_EMAIL en JIRA_API_TOKEN.');
+  if (r.status === 403) throw new HttpError(502, 'jira_forbidden', 'Het Jira-account mag geen opmerkingen plaatsen bij dit ticket.');
+  if (r.status === 404) throw new HttpError(404, 'not_found', 'Ticket ' + key + ' bestaat niet (meer) in Jira.');
+  if (!r.ok) throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
+  return mapComment((await r.json()) as RawComment);
 }
 
 /** Kiest het tickettype: "Task"/"Taak" als dat bestaat, anders het eerste gewone (geen epic, geen subtaak) type. */
@@ -340,6 +422,7 @@ type Body = {
   priority?: unknown;
   labels?: unknown;
   parent?: unknown;
+  text?: unknown;
 };
 
 function readBody(req: Req): Body {
@@ -374,6 +457,16 @@ export default async function handler(req: Req, res: Res) {
       if (!(hours > 0 && hours <= 10000)) throw new HttpError(400, 'bad_request', 'Ongeldig aantal uren.');
       await updateEstimate(cfg, key, hours);
       return send(res, 200, { ok: true, key, hours });
+    }
+
+    if (body.action === 'comments' || body.action === 'comment') {
+      const key = String(body.key || '').trim().toUpperCase();
+      if (!ISSUE_KEY.test(key)) throw new HttpError(400, 'bad_request', 'Ongeldig ticketnummer.');
+      if (body.action === 'comments') return send(res, 200, { ok: true, comments: await getComments(cfg, key) });
+      const text = String(body.text || '').trim();
+      if (!text) throw new HttpError(400, 'bad_request', 'Typ eerst een opmerking.');
+      if (text.length > MAX_TEXT) throw new HttpError(400, 'bad_request', 'De opmerking is te lang.');
+      return send(res, 200, { ok: true, comment: await addComment(cfg, key, text, user.name) });
     }
 
     if (body.action === 'parent') {

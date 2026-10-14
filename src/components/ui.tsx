@@ -112,3 +112,23 @@ export function Modal({ width, onClose, children }: { width: number; onClose: ()
     </div>
   );
 }
+
+const URL_RE = /(https?:\/\/[^\s<>"')]+)/g;
+
+/** Platte tekst met regelafbrekingen; webadressen worden klikbare links. */
+export function LinkedText({ text, className }: { text: string; className?: string }) {
+  const parts = text.split(URL_RE);
+  return (
+    <div className={className} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+      {parts.map((p, k) =>
+        k % 2 === 1 ? (
+          <a key={k} href={p} target="_blank" rel="noopener noreferrer">
+            {p}
+          </a>
+        ) : (
+          p
+        ),
+      )}
+    </div>
+  );
+}

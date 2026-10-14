@@ -58,6 +58,10 @@ uren in de tool niet zijn aangepast. Pas je de uren in de tool aan, dan blijft d
 de tool; de lijst wordt bij elke sync bijgewerkt. Kies je bij een Jira-ticket een ander project, dan wordt de epic
 (parent) ook in Jira aangepast. Epics zelf komen niet als taak in de inbox.
 
+**Omschrijving en opmerkingen:** bij een Jira-taak toont het zijpaneel de omschrijving uit Jira en de laatste
+opmerkingen. Via "Plaatsen in Jira" zet je een opmerking in het ticket (met de naam van wie hem plaatste). De
+interne notitie blijft alleen in de tool.
+
 **Omzetten naar Jira-ticket:** een handmatige taak kan via het zijpaneel (na bevestiging) als ticket in Jira worden
 aangemaakt, in project `JIRA_PROJECT` (standaard `MKT`). Titel, notitie, aanvrager, deadline, uren, prioriteit en
 markt/kanaal (als labels) gaan mee; velden die niet op het aanmaakscherm van Jira staan worden overgeslagen en gemeld.
