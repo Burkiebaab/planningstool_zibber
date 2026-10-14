@@ -93,6 +93,17 @@ export function derive(data: AppData, weeksVisible: number) {
   const byName = (a: string, b: string) => a.localeCompare(b, 'nl');
   const reqList = [...new Set([...REQS, ...items.map((i) => i.requester).filter(Boolean)])];
   const personList = [...new Set(items.map(personOf).filter(Boolean))].sort(byName);
+  // Uitvoerders om op te filteren: teamleden, en Jira-assignees die geen teamlid zijn.
+  const jiraOnly = [...new Set(items.map((i) => (i.assignee && byId[i.assignee] ? '' : i.jiraAssignee || '')).filter(Boolean))].sort(byName);
+  const assigneeOptions = [
+    { value: UNASSIGNED, label: 'Niet toegewezen' },
+    ...active
+      .slice()
+      .sort((a, b) => byName(a.name, b.name))
+      .map((m) => ({ value: 'm:' + m.id, label: m.name })),
+    ...jiraOnly.map((n) => ({ value: 'j:' + n, label: n + ' (Jira)' })),
+  ];
+
   // Met een live Jira-koppeling zijn de epics van het marketingproject de projecten.
   const epicNames = [...new Set((data.settings.jiraEpics || []).map((e) => e.name))].sort(byName);
   const epicsActive = epicNames.length > 0;
@@ -118,6 +129,7 @@ export function derive(data: AppData, weeksVisible: number) {
     reqList,
     personList,
     projects,
+    assigneeOptions,
     projectOptions,
     epicsActive,
   };
@@ -125,7 +137,16 @@ export function derive(data: AppData, weeksVisible: number) {
 
 export type Derived = ReturnType<typeof derive>;
 
-export const EMPTY_FILTERS: Filters = { source: '', project: '', channel: '', market: '', requester: '' };
+export const EMPTY_FILTERS: Filters = { source: '', project: '', channel: '', market: '', requester: '', assignee: '' };
+
+export const UNASSIGNED = '__none';
+
+/** Uitvoerder zoals in de kolom Uitvoerder: teamlid, anders de assignee uit Jira, anders niemand. */
+export function assigneeKey(i: Item, byId: Record<string, Member>) {
+  if (i.assignee && byId[i.assignee]) return 'm:' + i.assignee;
+  if (i.jiraAssignee) return 'j:' + i.jiraAssignee;
+  return UNASSIGNED;
+}
 
 export function makeMatcher(search: string, F: Filters, byId: Record<string, Member>) {
   const q = search.trim().toLowerCase();
@@ -135,6 +156,7 @@ export function makeMatcher(search: string, F: Filters, byId: Record<string, Mem
     if (F.channel && i.channel !== F.channel) return false;
     if (F.market && i.market !== F.market && i.market !== 'Alle') return false;
     if (F.requester && personOf(i) !== F.requester) return false;
+    if (F.assignee && assigneeKey(i, byId) !== F.assignee) return false;
     if (q) {
       const hay = [
         i.title, i.key, i.project, i.channel, i.requester, personOf(i), i.note,
