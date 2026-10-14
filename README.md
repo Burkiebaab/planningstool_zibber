@@ -44,7 +44,7 @@ server; alleen ingelogde @zibber.nl-gebruikers kunnen de functie aanroepen. Zet 
 - `JIRA_API_TOKEN` – API-token van dat account (id.atlassian.com → Security → API tokens)
 
 Welke tickets binnenkomen bepaalt de JQL in de app (Instellingen), standaard
-`project = MKT AND statusCategory != Done ORDER BY created DESC`. De app haalt op bij openen, elke paar minuten zolang
+`project = MKT AND issuetype != Epic AND statusCategory != Done ORDER BY created DESC`. De app haalt op bij openen, elke paar minuten zolang
 iemand de app open heeft en via "Nu ophalen". Tickets die al in de planning staan maar niet meer in de resultaten
 voorkomen, worden los gecontroleerd zodat afgeronde of verwijderde tickets als gesloten worden gemarkeerd.
 Zonder deze variabelen valt de app terug op de gesimuleerde demo-koppeling of CSV-import.
@@ -53,6 +53,10 @@ Zonder deze variabelen valt de app terug op de gesimuleerde demo-koppeling of CS
 uren in de tool niet zijn aangepast. Pas je de uren in de tool aan, dan blijft die waarde staan en wordt de
 *Original estimate* in Jira automatisch bijgewerkt. Daarvoor moet het Jira-account tickets mogen bewerken en moet
 *Original estimate* (tijdregistratie) op het ticketscherm staan.
+
+**Projecten = epics:** met een live koppeling zijn de open epics van `JIRA_PROJECT` (standaard `MKT`) de projecten in
+de tool; de lijst wordt bij elke sync bijgewerkt. Kies je bij een Jira-ticket een ander project, dan wordt de epic
+(parent) ook in Jira aangepast. Epics zelf komen niet als taak in de inbox.
 
 **Omzetten naar Jira-ticket:** een handmatige taak kan via het zijpaneel (na bevestiging) als ticket in Jira worden
 aangemaakt, in project `JIRA_PROJECT` (standaard `MKT`). Titel, notitie, aanvrager, deadline, uren, prioriteit en

@@ -2,6 +2,9 @@ import type { Priority, Status } from './types';
 
 export const STORAGE_KEY = 'zibber-planning-v1';
 
+/** Project van een taak die (nog) onder geen epic valt. */
+export const NO_PROJECT = 'Zonder project';
+
 /** Aantal weken dat de weekplanning tegelijk toont (1–4). */
 export const WEEKS_VISIBLE = 4;
 /** Vanaf welk percentage van de capaciteit een week als "vol" geldt. */

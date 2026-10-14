@@ -56,9 +56,16 @@ export function TaskModal({ preset, dv, weekOpts, onSave, onClose }: Props) {
         <p>Alleen project, werkzaamheid en uren zijn verplicht. De rest kan later.</p>
       </div>
       <div className="modal-body">
-        <Field label="Project *">
+        <Field label={dv.epicsActive ? 'Project (epic in Jira) *' : 'Project *'}>
           <select className="input input-lg" style={errBorder('project')} {...bind('project')}>
-            <Options list={[{ value: '', label: 'Kies een project' }, ...dv.projects, { value: '__new', label: '+ Nieuw project…' }]} />
+            <Options
+              list={[
+                { value: '', label: dv.epicsActive ? 'Kies een epic' : 'Kies een project' },
+                ...dv.projectOptions,
+                // Met Jira gekoppeld zijn de epics de projecten; nieuwe maak je in Jira aan.
+                ...(dv.epicsActive ? [] : [{ value: '__new', label: '+ Nieuw project…' }]),
+              ]}
+            />
           </select>
           {f.project === '__new' && <input className="input input-lg" placeholder="Naam van het nieuwe project" autoFocus {...bind('newProject')} />}
           {errs.project && <span className="field-error">{errs.project}</span>}

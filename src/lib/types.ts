@@ -74,6 +74,13 @@ export interface Settings {
   interval: number;
   auto: boolean;
   demoSim: boolean;
+  /** Open epics van het marketingproject in Jira; dit zijn de projecten in de tool. Leeg zonder live koppeling. */
+  jiraEpics?: JiraEpic[];
+}
+
+export interface JiraEpic {
+  key: string;
+  name: string;
 }
 
 export interface AppData {
@@ -101,6 +108,7 @@ export interface JiraIssue {
   labels: string[];
   components: string[];
   epic: string;
+  epicKey?: string;
 }
 
 export interface Filters {

@@ -43,7 +43,7 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
   const realConvert = jiraMode === 'live' || jiraMode === 'error';
   const canConvert = !sel.recurring && (realConvert || jiraMode === 'demo');
   const jiraUrl = 'https://' + site + '/browse/' + sel.key;
-  const projectOpts = dv.projects.includes(sel.project) || !sel.project ? dv.projects : [sel.project, ...dv.projects];
+  const projectOpts = dv.projectOptions.includes(sel.project) || !sel.project ? dv.projectOptions : [sel.project, ...dv.projectOptions];
 
   const text = (k: 'title' | 'start' | 'due' | 'channel' | 'requester' | 'requesterName' | 'note') => ({
     value: (k === 'requesterName' ? personOf(sel) : sel[k]) || '',
@@ -84,8 +84,8 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
           )}
 
           <div className="form-grid">
-            <Field label="Project" wide>
-              <select className="input" value={sel.project} onChange={(e) => up({ project: e.target.value })}>
+            <Field label={dv.epicsActive ? 'Project (epic in Jira)' : 'Project'} wide>
+              <select className="input" value={sel.project} onChange={(e) => void pl.setProject(sel.id, e.target.value)}>
                 <Options list={projectOpts} />
               </select>
             </Field>

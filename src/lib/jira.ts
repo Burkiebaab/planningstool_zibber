@@ -1,4 +1,4 @@
-import { CHANNELS, PRIO_TO_JIRA, REQS, STATUS_TO_JIRA } from './constants';
+import { CHANNELS, NO_PROJECT, PRIO_TO_JIRA, REQS, STATUS_TO_JIRA } from './constants';
 import { iso } from './dates';
 import { blankItem } from './planning';
 import type { AppData, Item, JiraIssue, Member, Priority, Status } from './types';
@@ -46,7 +46,7 @@ function fromIssue(is: JiraIssue): IssueFields {
     labels,
     components: comps,
     epic: is.epic || '',
-    project: is.epic || 'Zonder project',
+    project: is.epic || NO_PROJECT,
     jiraClosed: closed,
     market,
     channel,
@@ -106,7 +106,10 @@ export function mergeIssues(data: AppData, issues: JiraIssue[], demo: boolean) {
       (['due', 'market', 'channel', 'requester'] as const).forEach((k) => {
         if (!p[k]) delete p[k];
       });
-      if (!f.epic) delete p.project;
+      // Project = epic. `o.epic` is de epic zoals Jira die bij de vorige sync had. Is het project in de
+      // tool daarna gewijzigd (en nog niet in Jira terechtgekomen), dan blijft de keuze uit de tool staan.
+      const projectEditedInTool = !!o.epic && o.project !== o.epic;
+      if (projectEditedInTool || (!f.epic && !o.epic)) delete p.project;
       if (!o.jiraClosed && f.jiraClosed) closed++;
       const n = { ...o, ...p } as Item;
       if (!n.assignee && asg) n.assignee = asg;

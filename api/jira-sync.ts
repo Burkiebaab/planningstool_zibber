@@ -13,15 +13,21 @@
  * POST /api/jira-sync   body: { action: 'estimate', key: string, hours: number }
  * Zet de "Original estimate" van één ticket in Jira (uren aangepast in de planningstool).
  *
- * POST /api/jira-sync   body: { action: 'create', summary, description?, due?, hours?, priority?, labels? }
+ * POST /api/jira-sync   body: { action: 'create', summary, description?, due?, hours?, priority?, labels?, parent? }
  * Maakt een ticket aan in JIRA_PROJECT (standaard MKT) voor een taak uit de planningstool.
+ *
+ * POST /api/jira-sync   body: { action: 'parent', key: string, parent: string | null }
+ * Zet de epic (parent) van één ticket; null haalt het ticket uit de epic.
+ *
+ * Het antwoord op een sync bevat ook `epics`: de open epics van JIRA_PROJECT. Die gebruikt de
+ * planningstool als lijst met projecten.
  *
  * Dit bestand is bewust zelfstandig (geen imports uit src/), zodat Vercel het los kan draaien.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 const ALLOWED_DOMAIN = 'zibber.nl';
-const DEFAULT_JQL = 'project = MKT AND statusCategory != Done ORDER BY created DESC';
+const DEFAULT_JQL = 'project = MKT AND issuetype != Epic AND statusCategory != Done ORDER BY created DESC';
 const MAX_ISSUES = 1000;
 const MAX_KEYS = 100;
 const FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'created', 'duedate', 'timeoriginalestimate', 'labels', 'components', 'parent'];
@@ -44,6 +50,7 @@ interface JiraIssue {
   labels: string[];
   components: string[];
   epic: string;
+  epicKey: string;
 }
 
 class HttpError extends Error {
@@ -90,6 +97,15 @@ async function verifyUser(req: Req) {
   return { email };
 }
 
+const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/;
+
+/** Het Jira-project van het marketingteam (JIRA_PROJECT, standaard MKT). */
+function projectKey() {
+  const project = (process.env.JIRA_PROJECT || 'MKT').trim().toUpperCase();
+  if (!/^[A-Z][A-Z0-9_]*$/.test(project)) throw new HttpError(500, 'project', 'JIRA_PROJECT is ongeldig.');
+  return project;
+}
+
 function jiraConfig() {
   const site = origin(process.env.JIRA_SITE);
   const email = (process.env.JIRA_EMAIL || '').trim();
@@ -123,7 +139,7 @@ type RawIssue = {
     timeoriginalestimate?: number | null;
     labels?: string[];
     components?: { name?: string }[];
-    parent?: { fields?: { summary?: string } };
+    parent?: { key?: string; fields?: { summary?: string } };
   };
 };
 
@@ -146,6 +162,7 @@ function mapIssue(i: RawIssue): JiraIssue {
     labels: f.labels || [],
     components: (f.components || []).map((c) => c.name || '').filter(Boolean),
     epic: f.parent?.fields?.summary || '',
+    epicKey: f.parent?.key || '',
   };
 }
 
@@ -187,8 +204,8 @@ async function fetchKeys(cfg: Cfg, keys: string[]) {
 }
 
 /** Zet de Original estimate van één ticket. Probeert eerst zonder e-mailmeldingen aan volgers. */
-async function updateEstimate(cfg: Cfg, key: string, hours: number) {
-  const body = JSON.stringify({ fields: { timetracking: { originalEstimate: Math.round(hours * 60) + 'm' } } });
+async function updateIssue(cfg: Cfg, key: string, fields: Record<string, unknown>, fieldHelp: string) {
+  const body = JSON.stringify({ fields });
   const put = (quiet: boolean) =>
     fetch(cfg.site + '/rest/api/3/issue/' + encodeURIComponent(key) + (quiet ? '?notifyUsers=false' : ''), {
       method: 'PUT',
@@ -205,9 +222,26 @@ async function updateEstimate(cfg: Cfg, key: string, hours: number) {
   if (r.status === 400) {
     const e = (await r.json().catch(() => ({}))) as { errors?: Record<string, string>; errorMessages?: string[] };
     const detail = [...Object.values(e.errors || {}), ...(e.errorMessages || [])].join(' ');
-    throw new HttpError(400, 'estimate_field', 'Jira accepteert de schatting niet. Staat "Original estimate" (tijdregistratie) aan op het ticketscherm? ' + detail);
+    throw new HttpError(400, 'field', fieldHelp + ' ' + detail);
   }
   throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
+}
+
+const updateEstimate = (cfg: Cfg, key: string, hours: number) =>
+  updateIssue(cfg, key, { timetracking: { originalEstimate: Math.round(hours * 60) + 'm' } }, 'Jira accepteert de schatting niet. Staat "Original estimate" (tijdregistratie) aan op het ticketscherm?');
+
+const updateParent = (cfg: Cfg, key: string, parent: string | null) =>
+  updateIssue(cfg, key, { parent: parent ? { key: parent } : null }, 'Jira accepteert de epic niet.');
+
+/** Open epics van het marketingproject. Bij een fout (bijv. geen tickettype Epic) null, zodat de sync gewoon doorgaat. */
+async function fetchEpics(cfg: Cfg): Promise<{ key: string; name: string }[] | null> {
+  try {
+    const epics = await search(cfg, `project = ${projectKey()} AND issuetype = Epic AND statusCategory != Done ORDER BY summary ASC`);
+    return epics.map((e) => ({ key: e.key, name: e.summary }));
+  } catch (err) {
+    console.error('Epics ophalen mislukt', err);
+    return null;
+  }
 }
 
 /** Kiest het tickettype: "Task"/"Taak" als dat bestaat, anders het eerste gewone (geen epic, geen subtaak) type. */
@@ -241,8 +275,7 @@ const REQUIRED = new Set(['project', 'issuetype', 'summary']);
  * schatting) worden bij een foutmelding weggelaten en opnieuw geprobeerd; die staan in `dropped`.
  */
 async function createIssue(cfg: Cfg, b: Body, userEmail: string) {
-  const project = (process.env.JIRA_PROJECT || 'MKT').trim().toUpperCase();
-  if (!/^[A-Z][A-Z0-9_]*$/.test(project)) throw new HttpError(500, 'project', 'JIRA_PROJECT is ongeldig.');
+  const project = projectKey();
   const summary = String(b.summary || '').trim().slice(0, 250);
   if (!summary) throw new HttpError(400, 'bad_request', 'Geef de taak eerst een titel.');
   const type = await pickIssueType(cfg, project);
@@ -260,6 +293,8 @@ async function createIssue(cfg: Cfg, b: Body, userEmail: string) {
   if (hours > 0 && hours <= 10000) fields.timetracking = { originalEstimate: Math.round(hours * 60) + 'm' };
   const prio = PRIORITY[String(b.priority || '')];
   if (prio) fields.priority = { name: prio };
+  const parent = String(b.parent || '').trim().toUpperCase();
+  if (ISSUE_KEY.test(parent)) fields.parent = { key: parent };
   const labels = (Array.isArray(b.labels) ? b.labels : [])
     .map((l) => String(l).trim().replace(/\s+/g, '-'))
     .filter((l) => l && l.length <= 255)
@@ -304,6 +339,7 @@ type Body = {
   due?: unknown;
   priority?: unknown;
   labels?: unknown;
+  parent?: unknown;
 };
 
 function readBody(req: Req): Body {
@@ -334,22 +370,30 @@ export default async function handler(req: Req, res: Res) {
     if (body.action === 'estimate') {
       const key = String(body.key || '').trim().toUpperCase();
       const hours = Number(body.hours);
-      if (!/^[A-Z][A-Z0-9_]*-\d+$/.test(key)) throw new HttpError(400, 'bad_request', 'Ongeldig ticketnummer.');
+      if (!ISSUE_KEY.test(key)) throw new HttpError(400, 'bad_request', 'Ongeldig ticketnummer.');
       if (!(hours > 0 && hours <= 10000)) throw new HttpError(400, 'bad_request', 'Ongeldig aantal uren.');
       await updateEstimate(cfg, key, hours);
       return send(res, 200, { ok: true, key, hours });
     }
 
+    if (body.action === 'parent') {
+      const key = String(body.key || '').trim().toUpperCase();
+      const parent = body.parent == null || body.parent === '' ? null : String(body.parent).trim().toUpperCase();
+      if (!ISSUE_KEY.test(key) || (parent !== null && !ISSUE_KEY.test(parent))) throw new HttpError(400, 'bad_request', 'Ongeldig ticketnummer.');
+      await updateParent(cfg, key, parent);
+      return send(res, 200, { ok: true, key, parent });
+    }
+
     const jql = typeof body.jql === 'string' && body.jql.trim() ? body.jql.trim().slice(0, 2000) : DEFAULT_JQL;
     const keys = (Array.isArray(body.keys) ? body.keys : [])
       .map((k) => String(k).trim().toUpperCase())
-      .filter((k) => /^[A-Z][A-Z0-9_]*-\d+$/.test(k))
+      .filter((k) => ISSUE_KEY.test(k))
       .slice(0, MAX_KEYS);
 
-    const issues = await search(cfg, jql);
+    const [issues, epics] = await Promise.all([search(cfg, jql), fetchEpics(cfg)]);
     const seen = new Set(issues.map((i) => i.key));
     const extra = await fetchKeys(cfg, [...new Set(keys)].filter((k) => !seen.has(k)));
-    send(res, 200, { site: new URL(cfg.site).host, issues: [...issues, ...extra.found], missing: extra.missing });
+    send(res, 200, { site: new URL(cfg.site).host, issues: [...issues, ...extra.found], missing: extra.missing, epics });
   } catch (err) {
     if (err instanceof HttpError) return send(res, err.status, { error: err.code, message: err.message });
     console.error(err);

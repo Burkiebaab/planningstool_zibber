@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { STATUS_TO_JIRA, STORAGE_KEY } from './constants';
+import { NO_PROJECT, STATUS_TO_JIRA, STORAGE_KEY } from './constants';
 import { addDays, fmtH, iso, monday, toDate, weekNo } from './dates';
 import { buildDemo, demoPool, freshData, migrateSettings } from './demo';
 import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
 import { allocSum, blankItem, estimateOf, initialsOf, personOf, uid } from './planning';
-import { createJiraIssue, fetchLiveIssues, pushEstimate } from './jiraLive';
+import { createJiraIssue, fetchLiveIssues, pushEstimate, pushParent } from './jiraLive';
 import { useRemoteSync } from './remoteSync';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
@@ -149,7 +149,11 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
           if (res.ok) {
             // Samenvoegen met de nieuwste stand: tijdens het ophalen kan er al iets gewijzigd zijn.
             const d = dataRef.current;
-            const r = mergeIssues(d, res.issues, false);
+            // Epics zijn projecten, geen taken: niet in de inbox. Al binnengekomen epics zonder planning ruimen we op.
+            const epicKeys = new Set((res.epics || []).map((e) => e.key));
+            const tasks = res.issues.filter((is) => !epicKeys.has(is.key) && !/^epic$/i.test(is.issueType));
+            const cleaned = { ...d, items: d.items.filter((i) => !(i.source === 'jira' && epicKeys.has(i.key) && !(i.allocations || []).length)) };
+            const r = mergeIssues(cleaned, tasks, false);
             const missing = new Set(res.missing);
             let gone = 0;
             const items = r.data.items.map((i) => {
@@ -157,7 +161,8 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
               gone++;
               return { ...i, jiraClosed: true, status: 'Klaar' as Status, jiraStatus: 'Niet gevonden in Jira' };
             });
-            const settings = res.site && res.site !== d.settings.site ? { ...d.settings, site: res.site } : d.settings;
+            let settings = res.site && res.site !== d.settings.site ? { ...d.settings, site: res.site } : d.settings;
+            if (res.epics && JSON.stringify(res.epics) !== JSON.stringify(d.settings.jiraEpics || [])) settings = { ...settings, jiraEpics: res.epics };
             setData({ ...r.data, items, settings, lastSync: new Date().toISOString() });
             setJira({ mode: 'live' });
             done();
@@ -221,6 +226,22 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
         toast(`Uren bijgewerkt in Jira (${cur.key}: ${fmtH(v)}u)`);
       } else toast('Uren niet bijgewerkt in Jira: ' + r.message);
     }, 1500);
+  };
+
+  /** Project (= epic) wijzigen. Bij een Jira-ticket met live koppeling wordt de epic ook in Jira gezet. */
+  const setProject = async (id: string, project: string) => {
+    updItem(id, { project });
+    const i = getItem(id);
+    if (!remote || !i || i.source !== 'jira' || i.demo || jiraRef.current.mode !== 'live') return;
+    const epics = dataRef.current.settings.jiraEpics || [];
+    const epic = epics.find((e) => e.name === project);
+    if (!epic && project !== NO_PROJECT) return;
+    if ((epic ? epic.name : '') === i.epic) return;
+    const r = await pushParent(i.key, epic ? epic.key : null);
+    if (r.ok) {
+      updItem(id, { epic: epic ? epic.name : '' });
+      toast(epic ? `${i.key} staat nu onder epic "${epic.name}" in Jira` : `${i.key} is uit de epic gehaald in Jira`);
+    } else toast('Epic niet aangepast in Jira: ' + r.message);
   };
 
   // Met database: direct bij het openen tickets ophalen.
@@ -359,7 +380,8 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
         .filter(Boolean)
         .join('\n');
       const labels = [i.market !== 'Alle' ? i.market : '', i.channel].filter(Boolean);
-      const r = await createJiraIssue({ summary: i.title, description, due: i.due, hours: i.estimate, priority: i.priority, labels });
+      const epic = (dataRef.current.settings.jiraEpics || []).find((e) => e.name === i.project);
+      const r = await createJiraIssue({ summary: i.title, description, due: i.due, hours: i.estimate, priority: i.priority, labels, parent: epic ? epic.key : null });
       if (!r.ok) {
         toast('Ticket niet aangemaakt: ' + r.message);
         return null;
@@ -374,12 +396,12 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
         key: r.key,
         type: r.issueType,
         jiraStatus: 'To Do',
-        epic: '',
+        epic: epic && !r.dropped.includes('parent') ? epic.name : '',
         jiraEstimate: r.dropped.includes('timetracking') ? null : cur.estimate,
         isNew: false,
       };
       setData((d) => ({ ...d, items: d.items.map((x) => (x.id === id ? converted : x)) }));
-      const NAMES: Record<string, string> = { duedate: 'deadline', timetracking: 'uren', priority: 'prioriteit', labels: 'labels', description: 'beschrijving' };
+      const NAMES: Record<string, string> = { parent: 'epic', duedate: 'deadline', timetracking: 'uren', priority: 'prioriteit', labels: 'labels', description: 'beschrijving' };
       const skipped = r.dropped.map((f) => NAMES[f] || f);
       toast(`Ticket ${r.key} aangemaakt in Jira` + (skipped.length ? ` (zonder ${skipped.join(', ')}: niet op het Jira-scherm)` : ''));
       return newId;
@@ -523,6 +545,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     jira,
     updItem,
     setEstimate,
+    setProject,
     setSetting,
     sync,
     importCsv,
