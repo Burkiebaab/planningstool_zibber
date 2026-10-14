@@ -123,7 +123,7 @@ export function WeekView(p: Props) {
         p.onDropRail();
       }}>
         <div className="rail-head">
-          <span>Inbox</span>
+          <span>Nog inplannen</span>
           <span className="rail-count">{p.railItems.length}</span>
         </div>
         <span className="rail-hint">Sleep een item naar een teamlid en week. Sleep het terug om uit te plannen.</span>

@@ -1172,6 +1172,152 @@ textarea:focus {
   border-radius: 2px;
 }
 
+/* ── Alle projecten ──────────────────────────────────────── */
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1240px;
+}
+.projects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+  margin-right: 6px;
+}
+.project-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.project-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 0;
+  background: #f9fbfe;
+  text-align: left;
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+.project-head:hover {
+  background: var(--hover-soft);
+}
+.chevron {
+  display: inline-block;
+  width: 14px;
+  font-size: 16px;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.chevron.open {
+  transform: rotate(90deg);
+}
+.project-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.project-key {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.project-stats {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 12.5px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.project-stats strong {
+  color: var(--navy);
+}
+.project-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.project-body {
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+}
+.project-empty {
+  padding: 16px 18px 16px 44px;
+  font-size: 13px;
+}
+.project-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 110px 170px 90px 100px;
+  gap: 16px;
+  align-items: center;
+  min-width: 780px;
+  padding: 10px 18px 10px 44px;
+}
+.project-grid-head {
+  padding-top: 12px;
+  padding-bottom: 6px;
+}
+.project-row {
+  border-top: 1px solid var(--line-2);
+  cursor: pointer;
+}
+.project-row:hover {
+  background: #f7faff;
+}
+.project-row.is-done {
+  opacity: 0.55;
+}
+.project-task {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.project-hours {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+.status-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.st-todo {
+  background: #eef2f8;
+  color: var(--text-2);
+}
+.st-busy {
+  background: #e3eefd;
+  color: #1767c4;
+}
+.st-review {
+  background: #efe8fa;
+  color: #6b4fae;
+}
+.st-done {
+  background: #e3f3ea;
+  color: #3f8a63;
+}
+
 /* ── Team & capaciteit ───────────────────────────────────── */
 .team {
   display: flex;

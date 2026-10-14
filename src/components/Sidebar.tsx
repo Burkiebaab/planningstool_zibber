@@ -5,9 +5,10 @@ import type { JiraState } from '../lib/store';
 import type { Settings, View } from '../lib/types';
 
 export const VIEWS: [View, string][] = [
-  ['inbox', 'Intake-inbox'],
+  ['inbox', 'Nog inplannen'],
   ['week', 'Weekplanning'],
   ['quarter', 'Kwartaaloverzicht'],
+  ['projects', 'Alle projecten'],
   ['team', 'Team & capaciteit'],
 ];
 

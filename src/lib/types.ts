@@ -2,7 +2,7 @@ export type Priority = 'Hoog' | 'Normaal' | 'Laag';
 export type Status = 'To do' | 'Bezig' | 'Review' | 'Klaar';
 export type Recurring = '' | 'wekelijks' | 'maandelijks';
 export type Source = 'jira' | 'manual';
-export type View = 'inbox' | 'week' | 'quarter' | 'team';
+export type View = 'inbox' | 'week' | 'quarter' | 'projects' | 'team';
 export type SortKey = 'prio' | 'due' | 'created';
 
 /** Uren van één teamlid in één week (w = ISO-datum van de maandag). */

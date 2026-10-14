@@ -5,9 +5,10 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 
 ## Schermen
 
-- **Intake-inbox**: alles wat nog (deels) ingepland moet worden, gesorteerd op prioriteit, deadline of aanmaakdatum.
+- **Nog inplannen**: alles wat nog (deels) ingepland moet worden, gesorteerd op prioriteit, deadline of aanmaakdatum.
 - **Weekplanning**: sleep items uit de inbox naar een teamlid en week. Per cel zie je gepland vs. beschikbaar (ruimte / vol / overboekt), inclusief vrije dagen en terugkerende taken.
 - **Kwartaaloverzicht**: projecten en werkzaamheden op een tijdlijn met deadlines.
+- **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.
 - **Team & capaciteit**: teamleden, werkdagen, vakanties, bezetting voor 8 weken en terugkerende taken.
 
 Verder: zijpaneel per item (planning verdelen over weken, Jira-velden), waarschuwingen

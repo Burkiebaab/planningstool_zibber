@@ -1,7 +1,7 @@
 import type { DragEvent } from 'react';
-import { memberInitials } from '../lib/planning';
 import type { Item, Member, SortKey } from '../lib/types';
-import { Avatar, Dot, NewBadge, Segmented, SoftBadge, SrcTag, WarnDot } from '../components/ui';
+import { Assignee } from '../components/Assignee';
+import { Dot, NewBadge, Segmented, SoftBadge, SrcTag, WarnDot } from '../components/ui';
 import { describe } from './describe';
 
 interface Props {
@@ -102,25 +102,4 @@ export function InboxView({ items, total, sort, onSort, warningsOf, byId, tIso, 
       </div>
     </div>
   );
-}
-
-/** Uitvoerder: teamlid uit de tool, anders de assignee uit Jira, anders "Niet toegewezen". */
-function Assignee({ member, jiraName }: { member?: Member; jiraName?: string }) {
-  if (member) {
-    return (
-      <span className="inbox-assignee">
-        <Avatar color={member.color} initials={memberInitials(member)} size={24} fontSize={10} />
-        <span className="ellipsis inbox-person-name">{member.name}</span>
-      </span>
-    );
-  }
-  if (jiraName) {
-    return (
-      <span className="inbox-person">
-        <span className="ellipsis inbox-person-name">{jiraName}</span>
-        <span className="ellipsis inbox-person-dept">in Jira</span>
-      </span>
-    );
-  }
-  return <span className="inbox-unassigned">Niet toegewezen</span>;
 }

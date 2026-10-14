@@ -88,7 +88,7 @@ export function recurH(i: Item, w: string, mId: string): number {
   return 0;
 }
 
-/** Staat dit item (nog deels) in de intake-inbox? */
+/** Staat dit item (nog deels) bij Nog inplannen? */
 export function inInbox(i: Item): boolean {
   if (i.recurring) return !i.assignee && i.status !== 'Klaar';
   if (isDone(i)) return false;
