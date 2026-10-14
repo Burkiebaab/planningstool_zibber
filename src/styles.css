@@ -710,9 +710,133 @@ textarea:focus {
 }
 .inbox-grid {
   display: grid;
-  grid-template-columns: 72px minmax(240px, 1fr) 150px 150px 88px 88px 52px;
-  min-width: 1026px;
+  grid-template-columns: 92px minmax(240px, 1fr) 150px 150px 96px 88px 64px;
+  min-width: 1070px;
   gap: 16px;
+}
+.col-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  text-align: left;
+  min-width: 0;
+}
+.col-head:hover,
+.col-head.active {
+  color: var(--blue);
+}
+.col-head-right {
+  justify-content: flex-end;
+}
+.col-caret {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.col-sort {
+  font-size: 12px;
+}
+.col-filter-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.col-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.col-filter-chip {
+  background: var(--blue-soft);
+  color: var(--navy);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+.col-menu {
+  position: fixed;
+  z-index: 47;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  flex-direction: column;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.col-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-2);
+}
+.col-menu-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.col-menu-sort {
+  flex: 1;
+  height: 32px;
+  border: 1px solid var(--input-border);
+  border-radius: 9px;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.col-menu-sort.on {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue-hover);
+}
+.col-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  overflow: auto;
+}
+.col-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.col-menu-option:hover {
+  background: var(--hover-soft);
+}
+.col-menu-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+.col-menu-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+.link-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .inbox-list {
   display: flex;

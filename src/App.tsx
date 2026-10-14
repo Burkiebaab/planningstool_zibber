@@ -7,11 +7,12 @@ import { SettingsModal } from './components/SettingsModal';
 import { Sidebar, VIEWS } from './components/Sidebar';
 import { TaskModal } from './components/TaskModal';
 import type { Opt } from './components/ui';
-import { PRIO, STORAGE_KEY, WEEKS_VISIBLE } from './lib/constants';
+import { STORAGE_KEY, WEEKS_VISIBLE } from './lib/constants';
 import { addDays, fmt, iso, weekNo } from './lib/dates';
 import { derive, EMPTY_FILTERS, makeMatcher, type WarnEntry } from './lib/derive';
 import { usePlanning, useToast, type Backend, type TaskForm } from './lib/store';
-import type { AppData, DragInfo, Filters, Item, SortKey, View } from './lib/types';
+import { sortItems, type ColFilters, type InboxSort } from './lib/inboxColumns';
+import type { AppData, DragInfo, Filters, View } from './lib/types';
 import { InboxView } from './views/InboxView';
 import { ProjectsView } from './views/ProjectsView';
 import { QuarterView } from './views/QuarterView';
@@ -28,12 +29,6 @@ const SUBS: Record<View, string> = {
   team: 'Beheer je team, beschikbaarheid en vaste taken.',
 };
 
-const byDue = (a: Item, b: Item) => ((a.due || '9999') < (b.due || '9999') ? -1 : (a.due || '9999') > (b.due || '9999') ? 1 : 0);
-const SORTERS: Record<SortKey, (a: Item, b: Item) => number> = {
-  prio: (a, b) => PRIO[a.priority] - PRIO[b.priority] || ((a.due || '9999') < (b.due || '9999') ? -1 : 1),
-  due: (a, b) => byDue(a, b) || PRIO[a.priority] - PRIO[b.priority],
-  created: (a, b) => (a.created < b.created ? 1 : -1),
-};
 
 type ModalState =
   | null
@@ -72,7 +67,8 @@ export default function App({ initial, backend, account }: Props) {
   const [view, setView] = useState<View>(loadView);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<SortKey>('prio');
+  const [sort, setSort] = useState<InboxSort>({ key: 'prio', dir: 1 });
+  const [colFilters, setColFilters] = useState<ColFilters>({});
   const [weekOffset, setWeekOffset] = useState(0);
   const [qOffset, setQOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -104,7 +100,7 @@ export default function App({ initial, backend, account }: Props) {
 
   const dv = useMemo(() => derive(data, WEEKS_VISIBLE), [data]);
   const match = useMemo(() => makeMatcher(search, filters, dv.byId), [search, filters, dv.byId]);
-  const inboxFiltered = useMemo(() => dv.inboxAll.filter(match).sort(SORTERS[sort]), [dv.inboxAll, match, sort]);
+  const inboxFiltered = useMemo(() => sortItems(dv.inboxAll.filter(match), sort, { byId: dv.byId, tIso: dv.tIso }), [dv, match, sort]);
 
   const weekOpts: Opt[] = useMemo(() => {
     const out: Opt[] = [];
@@ -199,6 +195,8 @@ export default function App({ initial, backend, account }: Props) {
               items={inboxFiltered}
               total={dv.inboxAll.length}
               sort={sort}
+              colFilters={colFilters}
+              onColFilters={setColFilters}
               onSort={setSort}
               warningsOf={dv.warningsOf}
               byId={dv.byId}
