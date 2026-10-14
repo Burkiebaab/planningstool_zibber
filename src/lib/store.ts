@@ -4,8 +4,8 @@ import { addDays, fmtH, iso, monday, toDate, weekNo } from './dates';
 import { buildDemo, demoPool, freshData, migrateSettings } from './demo';
 import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
-import { allocSum, blankItem, estimateOf, initialsOf, uid } from './planning';
-import { fetchLiveIssues, pushEstimate } from './jiraLive';
+import { allocSum, blankItem, estimateOf, initialsOf, personOf, uid } from './planning';
+import { createJiraIssue, fetchLiveIssues, pushEstimate } from './jiraLive';
 import { useRemoteSync } from './remoteSync';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
@@ -340,16 +340,59 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     toast(fmtH(est) + 'u verdeeld over ' + n + (n === 1 ? ' week' : ' weken'));
   };
 
-  const convertToJira = (id: string) => {
-    const d = dataRef.current;
+  /**
+   * Zet een handmatige taak om naar een Jira-ticket. Met een live koppeling wordt het ticket echt
+   * aangemaakt; in de demo krijgt het een gesimuleerd nummer. Geeft de nieuwe item-id terug.
+   */
+  const convertToJira = async (id: string): Promise<string | null> => {
     const i = getItem(id);
-    if (!i) return;
+    if (!i) return null;
+    const mode = jiraRef.current.mode;
+
+    if (remote && (mode === 'live' || mode === 'error')) {
+      const person = personOf(i);
+      const description = [
+        i.note,
+        person || i.requester ? 'Aanvrager: ' + [person, i.requester && `(${i.requester})`].filter(Boolean).join(' ') : '',
+        i.project ? 'Project in de planning: ' + i.project : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const labels = [i.market !== 'Alle' ? i.market : '', i.channel].filter(Boolean);
+      const r = await createJiraIssue({ summary: i.title, description, due: i.due, hours: i.estimate, priority: i.priority, labels });
+      if (!r.ok) {
+        toast('Ticket niet aangemaakt: ' + r.message);
+        return null;
+      }
+      const cur = getItem(id) || i;
+      // Vaste id per ticket (zoals bij de sync), zodat een gelijktijdige sync geen dubbel item maakt.
+      const newId = 'jira-' + r.key;
+      const converted: Item = {
+        ...cur,
+        id: newId,
+        source: 'jira',
+        key: r.key,
+        type: r.issueType,
+        jiraStatus: 'To Do',
+        epic: '',
+        jiraEstimate: r.dropped.includes('timetracking') ? null : cur.estimate,
+        isNew: false,
+      };
+      setData((d) => ({ ...d, items: d.items.map((x) => (x.id === id ? converted : x)) }));
+      const NAMES: Record<string, string> = { duedate: 'deadline', timetracking: 'uren', priority: 'prioriteit', labels: 'labels', description: 'beschrijving' };
+      const skipped = r.dropped.map((f) => NAMES[f] || f);
+      toast(`Ticket ${r.key} aangemaakt in Jira` + (skipped.length ? ` (zonder ${skipped.join(', ')}: niet op het Jira-scherm)` : ''));
+      return newId;
+    }
+
+    const d = dataRef.current;
     const max = d.items
       .filter((x) => x.source === 'jira')
       .reduce((t, x) => Math.max(t, parseInt(String(x.key).split('-')[1]) || 0), 233);
     const key = 'MKT-' + (max + 1);
     updItem(id, { source: 'jira', key, type: 'Task', jiraStatus: STATUS_TO_JIRA[i.status], epic: i.project });
     toast('Omgezet naar ' + key + ' (gesimuleerd, nog niet in Jira aangemaakt)');
+    return id;
   };
 
   const unplan = (id: string) => {

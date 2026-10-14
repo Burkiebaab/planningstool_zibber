@@ -44,3 +44,20 @@ export async function pushEstimate(key: string, hours: number): Promise<{ ok: tr
   const r = await callApi({ action: 'estimate', key, hours });
   return r.ok ? { ok: true } : { ok: false, message: r.message };
 }
+
+export interface NewIssue {
+  summary: string;
+  description: string;
+  due: string;
+  hours: number | null;
+  priority: string;
+  labels: string[];
+}
+
+/** Maakt een ticket aan in Jira. `dropped`: velden die Jira niet accepteerde (niet op het scherm). */
+export async function createJiraIssue(issue: NewIssue): Promise<{ ok: true; key: string; issueType: string; dropped: string[] } | { ok: false; message: string }> {
+  const r = await callApi({ action: 'create', ...issue });
+  if (!r.ok) return { ok: false, message: r.message };
+  if (typeof r.body.key !== 'string') return { ok: false, message: 'Onverwacht antwoord van de server.' };
+  return { ok: true, key: r.body.key, issueType: String(r.body.issueType || 'Task'), dropped: (r.body.dropped as string[]) || [] };
+}

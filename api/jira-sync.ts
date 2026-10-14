@@ -13,6 +13,9 @@
  * POST /api/jira-sync   body: { action: 'estimate', key: string, hours: number }
  * Zet de "Original estimate" van één ticket in Jira (uren aangepast in de planningstool).
  *
+ * POST /api/jira-sync   body: { action: 'create', summary, description?, due?, hours?, priority?, labels? }
+ * Maakt een ticket aan in JIRA_PROJECT (standaard MKT) voor een taak uit de planningstool.
+ *
  * Dit bestand is bewust zelfstandig (geen imports uit src/), zodat Vercel het los kan draaien.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -84,6 +87,7 @@ async function verifyUser(req: Req) {
   if (!email.endsWith('@' + ALLOWED_DOMAIN) || !(user.app_metadata?.providers || []).includes('google')) {
     throw new HttpError(403, 'forbidden', 'Geen toegang.');
   }
+  return { email };
 }
 
 function jiraConfig() {
@@ -206,7 +210,101 @@ async function updateEstimate(cfg: Cfg, key: string, hours: number) {
   throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
 }
 
-type Body = { action?: unknown; jql?: unknown; keys?: unknown; key?: unknown; hours?: unknown };
+/** Kiest het tickettype: "Task"/"Taak" als dat bestaat, anders het eerste gewone (geen epic, geen subtaak) type. */
+async function pickIssueType(cfg: Cfg, project: string) {
+  const r = await jira(cfg, '/rest/api/3/issue/createmeta/' + encodeURIComponent(project) + '/issuetypes');
+  if (r.status === 404) throw new HttpError(400, 'project', 'Project ' + project + ' bestaat niet of het Jira-account mag er geen tickets in aanmaken.');
+  if (!r.ok) throw new HttpError(502, 'jira_error', 'Jira gaf een fout (' + r.status + ').');
+  const meta = (await r.json()) as { issueTypes?: IssueType[]; values?: IssueType[] };
+  const types = (meta.issueTypes || meta.values || []).filter((t) => !t.subtask);
+  const pick = types.find((t) => /^(task|taak)$/i.test(t.name)) || types.find((t) => t.hierarchyLevel === 0) || types[0];
+  if (!pick) throw new HttpError(400, 'project', 'Het Jira-account mag geen tickets aanmaken in project ' + project + '.');
+  return pick;
+}
+
+type IssueType = { id: string; name: string; subtask?: boolean; hierarchyLevel?: number };
+
+/** Jira verwacht beschrijvingen in Atlassian Document Format: één alinea per regel. */
+const adf = (text: string) => ({
+  type: 'doc',
+  version: 1,
+  content: text
+    .split('\n')
+    .map((line) => ({ type: 'paragraph', content: line.trim() ? [{ type: 'text', text: line }] : [] })),
+});
+
+const PRIORITY: Record<string, string> = { Hoog: 'High', Normaal: 'Medium', Laag: 'Low' };
+const REQUIRED = new Set(['project', 'issuetype', 'summary']);
+
+/**
+ * Maakt een ticket aan. Velden die niet op het aanmaakscherm van Jira staan (bijv. deadline of
+ * schatting) worden bij een foutmelding weggelaten en opnieuw geprobeerd; die staan in `dropped`.
+ */
+async function createIssue(cfg: Cfg, b: Body, userEmail: string) {
+  const project = (process.env.JIRA_PROJECT || 'MKT').trim().toUpperCase();
+  if (!/^[A-Z][A-Z0-9_]*$/.test(project)) throw new HttpError(500, 'project', 'JIRA_PROJECT is ongeldig.');
+  const summary = String(b.summary || '').trim().slice(0, 250);
+  if (!summary) throw new HttpError(400, 'bad_request', 'Geef de taak eerst een titel.');
+  const type = await pickIssueType(cfg, project);
+
+  const lines = [String(b.description || '').trim(), '', 'Aangemaakt vanuit Zibber Marketingplanning door ' + userEmail + '.'];
+  const fields: Record<string, unknown> = {
+    project: { key: project },
+    issuetype: { id: type.id },
+    summary,
+    description: adf(lines.join('\n').trim()),
+  };
+  const due = String(b.due || '');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(due)) fields.duedate = due;
+  const hours = Number(b.hours);
+  if (hours > 0 && hours <= 10000) fields.timetracking = { originalEstimate: Math.round(hours * 60) + 'm' };
+  const prio = PRIORITY[String(b.priority || '')];
+  if (prio) fields.priority = { name: prio };
+  const labels = (Array.isArray(b.labels) ? b.labels : [])
+    .map((l) => String(l).trim().replace(/\s+/g, '-'))
+    .filter((l) => l && l.length <= 255)
+    .slice(0, 10);
+  if (labels.length) fields.labels = labels;
+
+  const dropped: string[] = [];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch(cfg.site + '/rest/api/3/issue', {
+      method: 'POST',
+      headers: { Authorization: cfg.auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields }),
+    });
+    if (r.status === 201 || r.ok) {
+      const created = (await r.json()) as { key: string };
+      return { key: created.key, issueType: type.name, dropped };
+    }
+    if (r.status === 401) throw new HttpError(502, 'jira_auth', 'Jira weigert de inloggegevens. Controleer JIRA_EMAIL en JIRA_API_TOKEN.');
+    if (r.status === 403) throw new HttpError(502, 'jira_forbidden', 'Het Jira-account mag geen tickets aanmaken in project ' + project + '.');
+    const e = (await r.json().catch(() => ({}))) as { errors?: Record<string, string>; errorMessages?: string[] };
+    const bad = Object.keys(e.errors || {}).filter((f) => f in fields && !REQUIRED.has(f));
+    if (r.status !== 400 || !bad.length) {
+      const detail = [...Object.values(e.errors || {}), ...(e.errorMessages || [])].join(' ');
+      throw new HttpError(r.status === 400 ? 400 : 502, 'create_failed', 'Jira kon het ticket niet aanmaken. ' + detail);
+    }
+    bad.forEach((f) => {
+      delete fields[f];
+      dropped.push(f);
+    });
+  }
+  throw new HttpError(502, 'create_failed', 'Jira kon het ticket niet aanmaken.');
+}
+
+type Body = {
+  action?: unknown;
+  jql?: unknown;
+  keys?: unknown;
+  key?: unknown;
+  hours?: unknown;
+  summary?: unknown;
+  description?: unknown;
+  due?: unknown;
+  priority?: unknown;
+  labels?: unknown;
+};
 
 function readBody(req: Req): Body {
   const b = req.body;
@@ -224,9 +322,14 @@ function readBody(req: Req): Body {
 export default async function handler(req: Req, res: Res) {
   if (req.method !== 'POST') return send(res, 405, { error: 'method', message: 'Gebruik POST.' });
   try {
-    await verifyUser(req);
+    const user = await verifyUser(req);
     const cfg = jiraConfig();
     const body = readBody(req);
+
+    if (body.action === 'create') {
+      const created = await createIssue(cfg, body, user.email);
+      return send(res, 200, { ok: true, ...created });
+    }
 
     if (body.action === 'estimate') {
       const key = String(body.key || '').trim().toUpperCase();

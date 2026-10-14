@@ -54,6 +54,11 @@ uren in de tool niet zijn aangepast. Pas je de uren in de tool aan, dan blijft d
 *Original estimate* in Jira automatisch bijgewerkt. Daarvoor moet het Jira-account tickets mogen bewerken en moet
 *Original estimate* (tijdregistratie) op het ticketscherm staan.
 
+**Omzetten naar Jira-ticket:** een handmatige taak kan via het zijpaneel (na bevestiging) als ticket in Jira worden
+aangemaakt, in project `JIRA_PROJECT` (standaard `MKT`). Titel, notitie, aanvrager, deadline, uren, prioriteit en
+markt/kanaal (als labels) gaan mee; velden die niet op het aanmaakscherm van Jira staan worden overgeslagen en gemeld.
+De taak wordt daarna het Jira-ticket; de planning blijft staan.
+
 Bij de eerste keer inloggen is de database leeg; de app vraagt dan of je de gegevens uit je browser wilt overnemen,
 met demo-data wilt starten of leeg wilt beginnen.
 
