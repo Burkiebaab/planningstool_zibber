@@ -1,6 +1,7 @@
 import type { DragEvent } from 'react';
-import type { Item, SortKey } from '../lib/types';
-import { Dot, NewBadge, Segmented, SoftBadge, SrcTag, WarnDot } from '../components/ui';
+import { memberInitials } from '../lib/planning';
+import type { Item, Member, SortKey } from '../lib/types';
+import { Avatar, Dot, NewBadge, Segmented, SoftBadge, SrcTag, WarnDot } from '../components/ui';
 import { describe } from './describe';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   sort: SortKey;
   onSort: (s: SortKey) => void;
   warningsOf: (id: string) => string[];
+  byId: Record<string, Member>;
   tIso: string;
   onSelect: (id: string) => void;
   onDragStart: (e: DragEvent, id: string) => void;
@@ -21,7 +23,7 @@ const SORTS: [SortKey, string][] = [
   ['created', 'Aangemaakt'],
 ];
 
-export function InboxView({ items, total, sort, onSort, warningsOf, tIso, onSelect, onDragStart, onDragEnd }: Props) {
+export function InboxView({ items, total, sort, onSort, warningsOf, byId, tIso, onSelect, onDragStart, onDragEnd }: Props) {
   const summary =
     items.length === total ? total + (total === 1 ? ' item' : ' items') + ' nog in te plannen' : items.length + ' van ' + total + ' items (gefilterd)';
 
@@ -42,6 +44,7 @@ export function InboxView({ items, total, sort, onSort, warningsOf, tIso, onSele
         <span>Prioriteit</span>
         <span>Werkzaamheid</span>
         <span>Aanvrager</span>
+        <span>Uitvoerder</span>
         <span>Aangemaakt</span>
         <span>Deadline</span>
         <span style={{ textAlign: 'right' }}>Uren</span>
@@ -87,6 +90,7 @@ export function InboxView({ items, total, sort, onSort, warningsOf, tIso, onSele
                 <span className="ellipsis inbox-person-name">{d.person}</span>
                 <span className="ellipsis inbox-person-dept">{d.dept}</span>
               </span>
+              <Assignee member={byId[i.assignee || '']} jiraName={i.jiraAssignee} />
               <span className="inbox-date">{d.created}</span>
               <span className="inbox-date" style={{ fontWeight: 600, color: d.dueColor }}>
                 {d.due}
@@ -98,4 +102,25 @@ export function InboxView({ items, total, sort, onSort, warningsOf, tIso, onSele
       </div>
     </div>
   );
+}
+
+/** Uitvoerder: teamlid uit de tool, anders de assignee uit Jira, anders "Niet toegewezen". */
+function Assignee({ member, jiraName }: { member?: Member; jiraName?: string }) {
+  if (member) {
+    return (
+      <span className="inbox-assignee">
+        <Avatar color={member.color} initials={memberInitials(member)} size={24} fontSize={10} />
+        <span className="ellipsis inbox-person-name">{member.name}</span>
+      </span>
+    );
+  }
+  if (jiraName) {
+    return (
+      <span className="inbox-person">
+        <span className="ellipsis inbox-person-name">{jiraName}</span>
+        <span className="ellipsis inbox-person-dept">in Jira</span>
+      </span>
+    );
+  }
+  return <span className="inbox-unassigned">Niet toegewezen</span>;
 }

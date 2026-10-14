@@ -23,6 +23,8 @@ export interface Item {
   jiraStatus: string;
   priority: Priority;
   assignee: string | null;
+  /** Assignee volgens Jira (weergavenaam), ook als die persoon geen teamlid in de tool is. */
+  jiraAssignee?: string;
   reporter: string;
   requester: string;
   requesterName: string;

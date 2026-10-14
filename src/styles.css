@@ -710,8 +710,8 @@ textarea:focus {
 }
 .inbox-grid {
   display: grid;
-  grid-template-columns: 72px minmax(240px, 1fr) 150px 88px 88px 52px;
-  min-width: 860px;
+  grid-template-columns: 72px minmax(240px, 1fr) 150px 150px 88px 88px 52px;
+  min-width: 1026px;
   gap: 16px;
 }
 .inbox-list {
@@ -760,6 +760,16 @@ textarea:focus {
   flex-direction: column;
   gap: 1px;
   min-width: 0;
+}
+.inbox-assignee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.inbox-unassigned {
+  font-size: 13px;
+  color: var(--muted-2);
 }
 .inbox-person-name {
   font-size: 13px;
