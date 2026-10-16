@@ -2,7 +2,7 @@ import type { DragEvent, MouseEvent, ReactNode } from 'react';
 import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { capOf, dayLabel, initialsOf, isDone, memberInitials, projColor, recurH } from '../lib/planning';
+import { allocSum, capOf, dayLabel, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -21,6 +21,7 @@ interface Props {
   onDragEnd: () => void;
   onDropCell: (mId: string, w: string) => void;
   onDropRail: () => void;
+  onToggleCheck: (id: string, mId: string, w: string) => void;
   onMemberMenu: (e: MouseEvent, id: string) => void;
   onAddMember: () => void;
 }
@@ -31,6 +32,7 @@ interface Chip {
   hours: number;
   src: string;
   from: { m: string; w: string } | null;
+  checked: boolean;
 }
 
 export function WeekView(p: Props) {
@@ -40,6 +42,7 @@ export function WeekView(p: Props) {
     const cur = iso(d) === dv.mon0i;
     return { iso: iso(d), date: d, label: 'Wk ' + weekNo(d) + (cur ? ' · nu' : ''), range: wkRange(d), cur };
   });
+  const todo = p.railItems.filter(inInbox).length;
   const first = weeks[0];
   const last = weeks[weeks.length - 1];
 
@@ -53,10 +56,17 @@ export function WeekView(p: Props) {
     const pl = dv.plOf(m.id, w.iso);
     const key = m.id + '|' + w.iso;
     const st: CapState = pl === 0 && cap === 0 ? 'off' : cap === 0 || pl > cap + 0.01 ? 'over' : pl >= cap * FULL_THRESHOLD ? 'full' : 'ok';
-    const chips: Chip[] = (dv.idx[key] || []).map(({ i, a }, k) => ({ key: i.id + k, item: i, hours: +a.h || 0, src: i.source === 'jira' ? 'Jira' : 'Handmatig', from: { m: a.m, w: a.w } }));
+    const chips: Chip[] = (dv.idx[key] || []).map(({ i, a }, k) => ({
+      key: i.id + k,
+      item: i,
+      hours: +a.h || 0,
+      src: i.source === 'jira' ? 'Jira' : 'Handmatig',
+      from: { m: a.m, w: a.w },
+      checked: !!a.done,
+    }));
     dv.recurs.forEach((i) => {
       const h = recurH(i, w.iso, m.id);
-      if (h) chips.push({ key: i.id + '-r', item: i, hours: h, src: '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks'), from: null });
+      if (h) chips.push({ key: i.id + '-r', item: i, hours: h, src: '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks'), from: null, checked: isChecked(i, m.id, w.iso) });
     });
     const workdays = m.workdays.filter((d) => d <= 7).length;
     const perDay = workdays ? m.hours / workdays : 0;
@@ -87,11 +97,13 @@ export function WeekView(p: Props) {
           {offDays > 0 && <span className="cap-note">{offDays + (offDays === 1 ? ' vrije dag' : ' vrije dagen')}</span>}
         </div>
         {chips.map((c) => {
-          const w = c.from ? dv.warningsOf(c.item.id) : [];
+          const warn = c.from ? dv.warningsOf(c.item.id) : [];
+          const closed = isDone(c.item);
+          const done = closed || c.checked;
           return (
             <div
               key={c.key}
-              className="chip"
+              className={'chip' + (done ? ' chip-done' : '')}
               draggable={!!c.from}
               style={{ opacity: p.match(c.item) ? 1 : 0.28 }}
               onDragStart={(e) => (c.from ? p.onDragStart(e, c.item.id, c.from) : e.preventDefault())}
@@ -99,15 +111,27 @@ export function WeekView(p: Props) {
               onClick={() => p.onSelect(c.item.id)}
             >
               <div className="chip-head">
-                <Dot color={projColor(c.item.project)} size={6} radius={2} style={{ marginTop: 5 }} />
-                <span className="clamp2 chip-title" style={{ textDecoration: c.from && isDone(c.item) ? 'line-through' : 'none' }}>
-                  {c.item.title}
-                </span>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={done}
+                  className={'chip-check' + (done ? ' on' : '')}
+                  style={{ borderColor: done ? undefined : projColor(c.item.project) }}
+                  disabled={closed}
+                  title={closed ? 'Afgerond (status Klaar of gesloten in Jira)' : done ? 'Afgevinkt. Klik om weer open te zetten.' : 'Afvinken als gedaan (alleen in de planning, niet in Jira)'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    p.onToggleCheck(c.item.id, m.id, w.iso);
+                  }}
+                >
+                  {done ? '✓' : ''}
+                </button>
+                <span className="clamp2 chip-title">{c.item.title}</span>
               </div>
               <div className="chip-meta">
                 <strong>{fmtH(c.hours)}u</strong>
                 <span>{c.src}</span>
-                {w.length > 0 && <WarnDot text={w.join(' · ')} size={14} />}
+                {warn.length > 0 && <WarnDot text={warn.join(' · ')} size={14} />}
               </div>
             </div>
           );
@@ -123,14 +147,18 @@ export function WeekView(p: Props) {
         p.onDropRail();
       }}>
         <div className="rail-head">
-          <span>Nog inplannen</span>
+          <span>Alle taken</span>
           <span className="rail-count">{p.railItems.length}</span>
         </div>
-        <span className="rail-hint">Sleep een item naar een teamlid en week. Sleep het terug om uit te plannen.</span>
-        {p.railItems.length === 0 && <div className="rail-empty">Alles ingepland. Lekker bezig.</div>}
+        <span className="rail-hint">
+          {todo ? todo + ' nog in te plannen. ' : 'Alles is ingepland. '}
+          Sleep een taak naar een teamlid en week, ook als hij al is ingepland. Sleep een blok terug om het uit die week te halen.
+        </span>
+        {p.railItems.length === 0 && <div className="rail-empty">Geen openstaande taken.</div>}
         {p.railItems.map((i) => {
           const w = dv.warningsOf(i.id);
           const d = describe(i, w, dv.tIso);
+          const st = planState(i, dv.byId);
           return (
             <div key={i.id} className="rail-card" draggable onDragStart={(e) => p.onDragStart(e, i.id, null)} onDragEnd={p.onDragEnd} onClick={() => p.onSelect(i.id)}>
               <div className="rail-card-head">
@@ -144,6 +172,11 @@ export function WeekView(p: Props) {
                 <span style={{ color: d.dueColor }}>{d.due}</span>
                 {i.isNew && <NewBadge small />}
                 {d.partial && <SoftBadge small>{d.partial}</SoftBadge>}
+                {st && (
+                  <span className="badge badge-sm badge-ok" title={st.title}>
+                    {st.label}
+                  </span>
+                )}
                 {w.length > 0 && <WarnDot text={d.warnText} size={16} />}
               </div>
             </div>
@@ -231,4 +264,16 @@ function AssigneeBadge({ item, byId }: { item: Item; byId: Record<string, Member
       <Avatar color={m ? m.color : '#9AA8BF'} initials={m ? memberInitials(m) : initialsOf(name)} size={20} fontSize={9} />
     </span>
   );
+}
+
+/** Planningsstatus van een taak in de lijst: volledig ingepland of afgevinkt, met wie wanneer. */
+function planState(i: Item, byId: Record<string, Member>): { label: string; title: string } | null {
+  const al = i.allocations || [];
+  if (i.recurring || !al.length || inInbox(i)) return null;
+  const title =
+    'Ingepland: ' +
+    al.map((a) => (byId[a.m]?.name || 'onbekend') + ' ' + fmtH(+a.h || 0) + 'u (wk ' + weekNo(toDate(a.w)) + (a.done ? ', afgevinkt' : '') + ')').join(', ');
+  if (al.every((a) => a.done)) return { label: '✓ Afgevinkt', title };
+  const est = estimateOf(i);
+  return { label: 'Ingepland' + (est ? ' ' + fmtH(allocSum(i)) + 'u' : ''), title };
 }

@@ -17,6 +17,8 @@
   --danger-dot: #d27466;
   --danger-soft: #fdf5f3;
   --danger-tint: #f7e1dc;
+  --ok: #3f8a63;
+  --ok-soft: #e6f3ec;
   --shadow-card: 0 1px 2px rgba(30, 46, 75, 0.04);
   --shadow-pop: 0 16px 40px rgba(30, 46, 75, 0.16);
   --shadow-modal: 0 24px 60px rgba(30, 46, 75, 0.25);
@@ -378,6 +380,10 @@ textarea:focus {
   background: var(--blue-soft);
   color: var(--navy);
   font-weight: 600;
+}
+.badge-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 .badge-danger {
   background: var(--danger-tint);
@@ -1164,7 +1170,45 @@ textarea:focus {
   gap: 6px;
   font-size: 11px;
   color: var(--muted);
-  padding-left: 12px;
+  padding-left: 21px;
+}
+.chip-check {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  padding: 0;
+  border: 1.5px solid var(--muted-2);
+  border-radius: 4px;
+  background: #ffffff;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.chip-check:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(31, 127, 240, 0.15);
+}
+.chip-check.on {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.chip-check:disabled {
+  cursor: default;
+}
+.chip-done {
+  background: var(--ok-soft);
+}
+.chip-done:hover {
+  background: #dcefe4;
+}
+.chip-done .chip-title {
+  text-decoration: line-through;
+  color: var(--muted);
 }
 .chip-meta strong {
   color: var(--navy);
@@ -1840,7 +1884,7 @@ select.input-xs {
 }
 .alloc-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 70px 30px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 70px 18px 30px;
   gap: 6px;
   align-items: center;
 }

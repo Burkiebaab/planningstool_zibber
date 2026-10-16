@@ -6,7 +6,10 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 ## Schermen
 
 - **Nog inplannen**: alles wat nog (deels) ingepland moet worden, gesorteerd op prioriteit, deadline of aanmaakdatum.
-- **Weekplanning**: sleep items uit de inbox naar een teamlid en week. Per cel zie je gepland vs. beschikbaar (ruimte / vol / overboekt), inclusief vrije dagen en terugkerende taken.
+- **Weekplanning**: links staan alle openstaande taken, ook als ze al (deels) zijn ingepland. Sleep een taak naar een teamlid en week;
+  zo kun je één taak ook over meerdere mensen verdelen. Filter je op een uitvoerder, dan zie je alle taken op die naam (ook waarvoor
+  die persoon is ingepland). Per cel zie je gepland vs. beschikbaar (ruimte / vol / overboekt), inclusief vrije dagen en terugkerende
+  taken. Ingeplande blokken vink je af als ze gedaan zijn; dat staat alleen in de planning en gaat niet naar Jira.
 - **Kwartaaloverzicht**: projecten en werkzaamheden op een tijdlijn met deadlines.
 - **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.
 - **Team & capaciteit**: teamleden, werkdagen, vakanties, bezetting voor 8 weken en terugkerende taken.
