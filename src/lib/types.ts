@@ -10,6 +10,8 @@ export interface Allocation {
   m: string;
   w: string;
   h: number;
+  /** Afgevinkt in de weekplanning. Staat alleen in de tool, gaat niet naar Jira. */
+  done?: boolean;
 }
 
 export interface Item {
@@ -43,6 +45,8 @@ export interface Item {
   channel: string;
   note: string;
   recurring: Recurring;
+  /** Afgevinkte weken van een terugkerende taak, als '<teamlid-id>|<maandag>'. */
+  recurDone?: string[];
   isNew: boolean;
   jiraClosed: boolean;
   allocations: Allocation[];

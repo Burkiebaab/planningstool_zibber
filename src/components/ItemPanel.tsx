@@ -187,6 +187,16 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
                       <Options list={weekOpts} />
                     </select>
                     <NumberInput className="input input-sm" value={a.h} onValue={(v) => pl.updAlloc(sel.id, ai, { h: v ?? 0 })} />
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={!!a.done}
+                      className={'chip-check' + (a.done ? ' on' : '')}
+                      title={a.done ? 'Afgevinkt. Klik om weer open te zetten.' : 'Afvinken als gedaan (alleen in de planning, niet in Jira)'}
+                      onClick={() => pl.updAlloc(sel.id, ai, { done: !a.done })}
+                    >
+                      {a.done ? '✓' : ''}
+                    </button>
                     <button type="button" className="x-btn" title="Verwijder" onClick={() => pl.removeAlloc(sel.id, ai)}>
                       ×
                     </button>

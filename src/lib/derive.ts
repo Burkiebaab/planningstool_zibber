@@ -157,7 +157,8 @@ export function makeMatcher(search: string, F: Filters, byId: Record<string, Mem
     if (F.channel && i.channel !== F.channel) return false;
     if (F.market && i.market !== F.market && i.market !== 'Alle') return false;
     if (F.requester && personOf(i) !== F.requester) return false;
-    if (F.assignee && assigneeKey(i, byId) !== F.assignee) return false;
+    // Op naam filteren toont ook taken waarvoor iemand is ingepland zonder uitvoerder te zijn.
+    if (F.assignee && assigneeKey(i, byId) !== F.assignee && !(i.allocations || []).some((a) => 'm:' + a.m === F.assignee)) return false;
     if (q) {
       const hay = [
         i.title, i.key, i.project, i.channel, i.requester, personOf(i), i.note,

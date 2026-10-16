@@ -12,6 +12,7 @@ import { addDays, fmt, iso, weekNo } from './lib/dates';
 import { derive, EMPTY_FILTERS, makeMatcher, type WarnEntry } from './lib/derive';
 import { usePlanning, useToast, type Backend, type TaskForm } from './lib/store';
 import { sortItems, type ColFilters, type InboxSort } from './lib/inboxColumns';
+import { isDone } from './lib/planning';
 import type { AppData, DragInfo, Filters, View } from './lib/types';
 import { InboxView } from './views/InboxView';
 import { ProjectsView } from './views/ProjectsView';
@@ -23,7 +24,7 @@ const VIEW_KEY = STORAGE_KEY + '-view';
 
 const SUBS: Record<View, string> = {
   inbox: 'Alles wat nog ingepland moet worden, uit Jira en handmatig.',
-  week: 'Sleep items naar een teamlid en week. De balk laat zien hoeveel ruimte er nog is.',
+  week: 'Sleep taken naar een teamlid en week en vink af wat klaar is. De balk laat zien hoeveel ruimte er nog is.',
   quarter: 'Projecten, epics en deadlines op een tijdlijn.',
   projects: 'Alle projecten (epics) met hun taken, uitvoerders en voortgang.',
   team: 'Beheer je team, beschikbaarheid en vaste taken.',
@@ -101,6 +102,11 @@ export default function App({ initial, backend, account }: Props) {
   const dv = useMemo(() => derive(data, WEEKS_VISIBLE), [data]);
   const match = useMemo(() => makeMatcher(search, filters, dv.byId), [search, filters, dv.byId]);
   const inboxFiltered = useMemo(() => sortItems(dv.inboxAll.filter(match), sort, { byId: dv.byId, tIso: dv.tIso }), [dv, match, sort]);
+  // De weekplanning toont alle openstaande taken, ook als ze al (deels) zijn ingepland.
+  const weekRail = useMemo(
+    () => sortItems(data.items.filter((i) => !isDone(i) && match(i)), sort, { byId: dv.byId, tIso: dv.tIso }),
+    [data.items, dv, match, sort],
+  );
 
   const weekOpts: Opt[] = useMemo(() => {
     const out: Opt[] = [];
@@ -212,7 +218,7 @@ export default function App({ initial, backend, account }: Props) {
               weeksVisible={WEEKS_VISIBLE}
               weekOffset={weekOffset}
               onWeekOffset={setWeekOffset}
-              railItems={inboxFiltered}
+              railItems={weekRail}
               match={match}
               hover={hover}
               onHover={setHover}
@@ -221,8 +227,9 @@ export default function App({ initial, backend, account }: Props) {
               onDragEnd={onDragEnd}
               onDropCell={(mId, w) => {
                 const d = takeDrag();
-                if (d) pl.dropOn(d, mId, w);
+                if (d && pl.dropOn(d, mId, w)) setSelected(d.id);
               }}
+              onToggleCheck={pl.toggleCheck}
               onDropRail={() => {
                 const d = takeDrag();
                 if (d) pl.dropOnRail(d);

@@ -279,34 +279,59 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
   };
 
   // ── Slepen in de weekplanning ─────────────────────────────────────────
-  const dropOn = (drag: DragInfo, mId: string, w: string) => {
+  /** Plant een gesleept item in. Geeft true als er geen uren meer over waren: dan moeten die nog verdeeld worden. */
+  const dropOn = (drag: DragInfo, mId: string, w: string): boolean => {
     const d = dataRef.current;
     const i = d.items.find((x) => x.id === drag.id);
     const m = d.members.find((x) => x.id === mId);
-    if (!i || !m) return;
+    if (!i || !m) return false;
     if (i.recurring) {
       updItem(i.id, { assignee: mId, start: i.start || w, isNew: false });
       toast(i.title + ' loopt nu bij ' + m.name);
-      return;
+      return false;
     }
     const al = (i.allocations || []).map((a) => ({ ...a }));
     let h: number;
+    let done = false;
     if (drag.from) {
       const from = drag.from;
-      if (from.m === mId && from.w === w) return;
+      if (from.m === mId && from.w === w) return false;
       const ix = al.findIndex((a) => a.m === from.m && a.w === from.w);
-      if (ix < 0) return;
+      if (ix < 0) return false;
       h = +al[ix].h || 0;
+      done = !!al[ix].done;
       al.splice(ix, 1);
     } else {
-      // Uit de inbox: plan de resterende uren in.
+      // Uit de lijst: plan de resterende uren in. Is alles al ingepland, dan komt er een blok van 0u bij
+      // (bijv. om het werk over meerdere mensen te verdelen); de uren vul je daarna in het zijpaneel in.
       h = Math.max(0, estimateOf(i) - al.reduce((t, a) => t + (+a.h || 0), 0));
     }
     const ex = al.find((a) => a.m === mId && a.w === w);
-    if (ex) ex.h = (+ex.h || 0) + h;
-    else al.push({ m: mId, w, h });
+    if (ex) {
+      ex.h = (+ex.h || 0) + h;
+      if (h && !done) ex.done = false;
+    } else al.push(done ? { m: mId, w, h, done } : { m: mId, w, h });
     updItem(i.id, { allocations: al, assignee: i.assignee || mId, isNew: false });
-    toast(i.title + ' → ' + m.name.split(' ')[0] + ', week ' + weekNo(toDate(w)) + (h ? ' (' + fmtH(h) + 'u)' : ''));
+    const noHours = !drag.from && !h && !ex;
+    toast(
+      i.title + ' → ' + m.name.split(' ')[0] + ', week ' + weekNo(toDate(w)) + (h ? ' (' + fmtH(h) + 'u)' : '') + (noHours ? '. Vul de uren in.' : ''),
+    );
+    return noHours;
+  };
+
+  /** Vinkt het blok van teamlid `mId` in week `w` af (of weer aan). Alleen in de tool, niet in Jira. */
+  const toggleCheck = (id: string, mId: string, w: string) => {
+    const i = getItem(id);
+    if (!i) return;
+    if (i.recurring) {
+      const k = mId + '|' + w;
+      const cur = i.recurDone || [];
+      updItem(id, { recurDone: cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k] });
+      return;
+    }
+    const al = i.allocations || [];
+    const on = !al.some((a) => a.m === mId && a.w === w && a.done);
+    updItem(id, { allocations: al.map((a) => (a.m === mId && a.w === w ? { ...a, done: on } : a)) });
   };
 
   const dropOnRail = (drag: DragInfo) => {
@@ -315,7 +340,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     const i = getItem(drag.id);
     if (!i) return;
     updItem(i.id, { allocations: (i.allocations || []).filter((a) => !(a.m === from.m && a.w === from.w)) });
-    toast(i.title + ' staat weer in de inbox');
+    toast(i.title + ' is uit die week gehaald');
   };
 
   // ── Planning van één item ─────────────────────────────────────────────
@@ -552,6 +577,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     exportCsv,
     dropOn,
     dropOnRail,
+    toggleCheck,
     updAlloc,
     removeAlloc,
     addAlloc,

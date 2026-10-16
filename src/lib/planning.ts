@@ -32,6 +32,12 @@ export const estimateOf = (i: Item) => (i.estimate != null && i.estimate > 0 ? i
 
 export const isDone = (i: Item) => i.status === 'Klaar' || i.jiraClosed;
 
+/** Is het blok van teamlid `mId` in week `w` afgevinkt in de weekplanning? */
+export function isChecked(i: Item, mId: string, w: string): boolean {
+  if (i.recurring) return (i.recurDone || []).includes(mId + '|' + w);
+  return (i.allocations || []).some((a) => a.m === mId && a.w === w && a.done);
+}
+
 export const blankItem = (): Item => ({
   id: '',
   source: 'manual',
