@@ -5,8 +5,12 @@ export const STORAGE_KEY = 'zibber-planning-v1';
 /** Project van een taak die (nog) onder geen epic valt. */
 export const NO_PROJECT = 'Zonder project';
 
-/** Aantal weken dat de weekplanning tegelijk toont (1–4). */
-export const WEEKS_VISIBLE = 4;
+/** Hoeveel weken de weekplanning tegelijk kan tonen: 4 weken of een kwartaal. */
+export const WEEK_SPANS: [string, string][] = [
+  ['4', '4 weken'],
+  ['13', 'Kwartaal'],
+];
+export const WEEKS_DEFAULT = 4;
 /** Vanaf welk percentage van de capaciteit een week als "vol" geldt. */
 export const FULL_THRESHOLD = 0.85;
 
