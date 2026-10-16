@@ -1,15 +1,16 @@
 import type { DragEvent, MouseEvent, ReactNode } from 'react';
-import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, type CapState } from '../lib/constants';
+import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, WEEK_SPANS, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
 import { allocSum, capOf, dayLabel, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
-import { Avatar, Dot, NewBadge, SoftBadge, WarnDot } from '../components/ui';
+import { Avatar, Dot, NewBadge, Segmented, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
 
 interface Props {
   dv: Derived;
   weeksVisible: number;
+  onWeeksVisible: (n: number) => void;
   weekOffset: number;
   onWeekOffset: (n: number) => void;
   railItems: Item[];
@@ -196,6 +197,7 @@ export function WeekView(p: Props) {
             <button type="button" className="icon-btn" onClick={() => p.onWeekOffset(p.weekOffset + 1)} aria-label="Volgende week">
               ›
             </button>
+            <Segmented small options={WEEK_SPANS} value={String(p.weeksVisible)} onChange={(v) => p.onWeeksVisible(+v)} />
             <span className="muted" style={{ fontSize: 13, marginLeft: 8 }}>
               Week {weekNo(toDate(first.iso))} – {weekNo(toDate(last.iso))} · {fmt(first.iso)} – {fmt(addDays(toDate(last.iso), 4))}
             </span>

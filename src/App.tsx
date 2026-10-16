@@ -7,7 +7,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { Sidebar, VIEWS } from './components/Sidebar';
 import { TaskModal } from './components/TaskModal';
 import type { Opt } from './components/ui';
-import { STORAGE_KEY, WEEKS_VISIBLE } from './lib/constants';
+import { STORAGE_KEY, WEEK_SPANS, WEEKS_DEFAULT } from './lib/constants';
 import { addDays, fmt, iso, weekNo } from './lib/dates';
 import { derive, EMPTY_FILTERS, makeMatcher, type WarnEntry } from './lib/derive';
 import { usePlanning, useToast, type Backend, type TaskForm } from './lib/store';
@@ -21,6 +21,8 @@ import { TeamView } from './views/TeamView';
 import { WeekView } from './views/WeekView';
 
 const VIEW_KEY = STORAGE_KEY + '-view';
+/** Aantal zichtbare weken: per browser, niet gedeeld met collega's. */
+const WEEKS_KEY = STORAGE_KEY + '-weeks';
 
 const SUBS: Record<View, string> = {
   inbox: 'Alles wat nog ingepland moet worden, uit Jira en handmatig.',
@@ -48,6 +50,16 @@ function loadView(): View {
   return 'week';
 }
 
+function loadWeeks(): number {
+  try {
+    const v = localStorage.getItem(WEEKS_KEY);
+    if (v && WEEK_SPANS.some(([k]) => k === v)) return +v;
+  } catch {
+    /* geen opslag beschikbaar */
+  }
+  return WEEKS_DEFAULT;
+}
+
 export interface Account {
   email: string;
   name: string;
@@ -70,6 +82,7 @@ export default function App({ initial, backend, account }: Props) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<InboxSort>({ key: 'prio', dir: 1 });
   const [colFilters, setColFilters] = useState<ColFilters>({});
+  const [weeksVisible, setWeeksVisible] = useState(loadWeeks);
   const [weekOffset, setWeekOffset] = useState(0);
   const [qOffset, setQOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -88,6 +101,14 @@ export default function App({ initial, backend, account }: Props) {
   }, [view]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(WEEKS_KEY, String(weeksVisible));
+    } catch {
+      /* negeren */
+    }
+  }, [weeksVisible]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setSelected(null);
@@ -99,7 +120,7 @@ export default function App({ initial, backend, account }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const dv = useMemo(() => derive(data, WEEKS_VISIBLE), [data]);
+  const dv = useMemo(() => derive(data, weeksVisible), [data, weeksVisible]);
   const match = useMemo(() => makeMatcher(search, filters, dv.byId), [search, filters, dv.byId]);
   const inboxFiltered = useMemo(() => sortItems(dv.inboxAll.filter(match), sort, { byId: dv.byId, tIso: dv.tIso }), [dv, match, sort]);
   // De weekplanning toont alle openstaande taken, ook als ze al (deels) zijn ingepland.
@@ -215,7 +236,8 @@ export default function App({ initial, backend, account }: Props) {
           {view === 'week' && (
             <WeekView
               dv={dv}
-              weeksVisible={WEEKS_VISIBLE}
+              weeksVisible={weeksVisible}
+              onWeeksVisible={setWeeksVisible}
               weekOffset={weekOffset}
               onWeekOffset={setWeekOffset}
               railItems={weekRail}
