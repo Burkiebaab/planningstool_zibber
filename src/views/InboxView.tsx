@@ -8,6 +8,11 @@ import { describe } from './describe';
 interface Props {
   items: Item[];
   total: number;
+  /** Toon de items die uit het overzicht zijn gehaald in plaats van wat nog ingepland moet worden. */
+  showHidden: boolean;
+  hiddenCount: number;
+  onShowHidden: (on: boolean) => void;
+  onNoPlanning: (id: string, on: boolean) => void;
   sort: InboxSort;
   onSort: (s: InboxSort) => void;
   colFilters: ColFilters;
@@ -26,13 +31,14 @@ const SORTS: [ColKey, string][] = [
   ['created', 'Aangemaakt'],
 ];
 
-export function InboxView({ items: all, total, sort, onSort, colFilters, onColFilters, warningsOf, byId, tIso, onSelect, onDragStart, onDragEnd }: Props) {
+export function InboxView({ items: all, total, showHidden, hiddenCount, onShowHidden, onNoPlanning, sort, onSort, colFilters, onColFilters, warningsOf, byId, tIso, onSelect, onDragStart, onDragEnd }: Props) {
   const ctx = { byId, tIso };
   const items = applyColFilters(all, colFilters, ctx);
   const colFiltersOn = COL_ORDER.some((k) => colFilters[k]?.length);
   const [menu, setMenu] = useState<{ key: ColKey; left: number; top: number } | null>(null);
+  const what = showHidden ? ' uit het overzicht gehaald' : ' nog in te plannen';
   const summary =
-    items.length === total ? total + (total === 1 ? ' item' : ' items') + ' nog in te plannen' : items.length + ' van ' + total + ' items (gefilterd)';
+    items.length === total ? total + (total === 1 ? ' item' : ' items') + what : items.length + ' van ' + total + ' items (gefilterd)';
 
   // Kolommenu sluiten bij Escape of scrollen (het staat vast op het scherm).
   useEffect(() => {
@@ -55,8 +61,21 @@ export function InboxView({ items: all, total, sort, onSort, colFilters, onColFi
   return (
     <div className="inbox">
       <div className="inbox-toolbar">
-        <div className="muted" style={{ fontSize: 14 }}>
-          {summary}
+        <div className="row-gap8">
+          <span className="muted" style={{ fontSize: 14 }}>
+            {summary}
+          </span>
+          {showHidden ? (
+            <button type="button" className="link-btn" onClick={() => onShowHidden(false)}>
+              ← Terug naar nog inplannen
+            </button>
+          ) : (
+            hiddenCount > 0 && (
+              <button type="button" className="link-btn link-muted" onClick={() => onShowHidden(true)}>
+                Uit overzicht gehaald ({hiddenCount})
+              </button>
+            )
+          )}
         </div>
         <div className="inbox-sort">
           <span className="muted" style={{ fontSize: 13 }}>
@@ -98,6 +117,7 @@ export function InboxView({ items: all, total, sort, onSort, colFilters, onColFi
             </button>
           );
         })}
+        <span />
       </div>
       {menu && (
         <ColumnMenu
@@ -117,9 +137,13 @@ export function InboxView({ items: all, total, sort, onSort, colFilters, onColFi
       )}
       {items.length === 0 && (
         <div className="empty-state">
-          <div className="empty-title">{total ? 'Niets gevonden' : 'Alles ingepland. Lekker bezig.'}</div>
+          <div className="empty-title">{total ? 'Niets gevonden' : showHidden ? 'Niets uit het overzicht gehaald' : 'Alles ingepland. Lekker bezig.'}</div>
           <div className="muted" style={{ fontSize: 14 }}>
-            {total ? 'Probeer een andere zoekterm of wis de filters.' : 'Nieuwe aanvragen uit Jira verschijnen hier vanzelf.'}
+            {total
+              ? 'Probeer een andere zoekterm of wis de filters.'
+              : showHidden
+                ? 'Taken die je niet wilt inplannen (zoals een hoofdtaak met subtaken) haal je weg met de knop achter de regel.'
+                : 'Nieuwe aanvragen uit Jira verschijnen hier vanzelf.'}
           </div>
         </div>
       )}
@@ -162,6 +186,18 @@ export function InboxView({ items: all, total, sort, onSort, colFilters, onColFi
                 {d.due}
               </span>
               <span className="inbox-hours">{d.hours}</span>
+              <button
+                type="button"
+                className={'inbox-hide' + (showHidden ? ' inbox-restore' : '')}
+                title={showHidden ? 'Terugzetten bij Nog inplannen' : 'Niet inplannen: uit het overzicht halen (bijv. een hoofdtaak met subtaken)'}
+                aria-label={showHidden ? 'Terugzetten' : 'Uit overzicht halen'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNoPlanning(i.id, !showHidden);
+                }}
+              >
+                {showHidden ? '↺' : '×'}
+              </button>
             </div>
           );
         })}

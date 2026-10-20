@@ -6,6 +6,9 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 ## Schermen
 
 - **Nog inplannen**: alles wat nog (deels) ingepland moet worden, gesorteerd op prioriteit, deadline of aanmaakdatum.
+  Taken die je niet zelf wilt inplannen (bijv. een hoofdtaak waarvan je alleen de subtaken inplant) haal je uit het overzicht
+  met het kruisje achter de regel of het vinkje *Niet inplannen* in het zijpaneel. Ze staan dan ook niet meer in de takenlijst
+  van de weekplanning. Via *Uit overzicht gehaald* zie je ze terug en zet je ze weer terug.
 - **Weekplanning**: links staan alle openstaande taken, ook als ze al (deels) zijn ingepland. Sleep een taak naar een teamlid en week;
   zo kun je één taak ook over meerdere mensen verdelen. Filter je op een uitvoerder, dan zie je alle taken op die naam (ook waarvoor
   die persoon is ingepland). Per cel zie je gepland vs. beschikbaar (ruimte / vol / overboekt), inclusief vrije dagen en terugkerende

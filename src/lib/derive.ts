@@ -74,7 +74,7 @@ export function derive(data: AppData, weeksVisible: number) {
   const warnsOf = (i: Item) => {
     const w: string[] = [];
     const al = i.allocations || [];
-    if (!isDone(i) && !(estimateOf(i) > 0)) w.push('Geen uren-inschatting');
+    if (!isDone(i) && !i.noPlanning && !(estimateOf(i) > 0)) w.push('Geen uren-inschatting');
     if (i.due && !i.recurring && al.some((a) => a.w > i.due)) w.push('Ingepland na deadline (' + fmt(i.due) + ')');
     if (i.jiraClosed && al.some((a) => a.w >= mon0i)) w.push('Jira-ticket gesloten, maar nog ingepland');
     if (!i.recurring && al.some((a) => over.has(a.m + '|' + a.w))) w.push(OVERBOOKED);
@@ -126,6 +126,8 @@ export function derive(data: AppData, weeksVisible: number) {
     warnList,
     warningsOf: (id: string) => wmap.get(id) || [],
     inboxAll: items.filter(inInbox),
+    /** Open items die uit Nog inplannen zijn gehaald. */
+    hiddenAll: items.filter((i) => i.noPlanning && !isDone(i)),
     reqList,
     personList,
     projects,

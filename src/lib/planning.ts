@@ -96,6 +96,7 @@ export function recurH(i: Item, w: string, mId: string): number {
 
 /** Staat dit item (nog deels) bij Nog inplannen? */
 export function inInbox(i: Item): boolean {
+  if (i.noPlanning) return false;
   if (i.recurring) return !i.assignee && i.status !== 'Klaar';
   if (isDone(i)) return false;
   return i.estimate != null && i.estimate > 0 ? allocSum(i) < i.estimate : !(i.allocations || []).length;

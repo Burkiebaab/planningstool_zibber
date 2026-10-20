@@ -47,6 +47,8 @@ export interface Item {
   recurring: Recurring;
   /** Afgevinkte weken van een terugkerende taak, als '<teamlid-id>|<maandag>'. */
   recurDone?: string[];
+  /** Bewust niet inplannen (bijv. een hoofdtaak waarvan alleen de subtaken worden ingepland). Staat alleen in de tool. */
+  noPlanning?: boolean;
   isNew: boolean;
   jiraClosed: boolean;
   allocations: Allocation[];

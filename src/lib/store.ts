@@ -447,6 +447,11 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     toast('Uit de planning gehaald');
   };
 
+  const setNoPlanning = (id: string, on: boolean) => {
+    updItem(id, { noPlanning: on || undefined, isNew: false });
+    toast(on ? 'Uit Nog inplannen gehaald' : 'Terug bij Nog inplannen');
+  };
+
   const removeItem = (id: string) => {
     setData((d) => ({ ...d, items: d.items.filter((i) => i.id !== id) }));
     toast('Taak verwijderd');
@@ -569,6 +574,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     syncing,
     jira,
     updItem,
+    setNoPlanning,
     setEstimate,
     setProject,
     setSetting,
