@@ -39,6 +39,8 @@ function fromIssue(is: JiraIssue): IssueFields {
     priority,
     jiraAssignee: is.assignee || '',
     ...(is.description !== undefined ? { jiraDescription: is.description } : {}),
+    // Alleen de live koppeling kent subtaken; een CSV-import laat ze staan.
+    ...(is.subtasks !== undefined ? { jiraSubtasks: is.subtasks, jiraParent: is.parentKey ? { key: is.parentKey, title: is.parentTitle || is.parentKey } : undefined } : {}),
     reporter: is.reporter || '',
     created: is.created || iso(new Date()),
     due: is.due || '',

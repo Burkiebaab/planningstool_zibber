@@ -302,7 +302,7 @@ export default function App({ initial, backend, account }: Props) {
 
       {warnOpen && <div className="click-away" style={{ zIndex: 44 }} onClick={() => setWarnOpen(false)} />}
 
-      {sel && <ItemPanel key={sel.id} item={sel} dv={dv} site={data.settings.site} jiraMode={pl.jira.mode} onSelect={setSelected} weekOpts={weekOpts} pl={pl} onClose={() => setSelected(null)} />}
+      {sel && <ItemPanel key={sel.id} item={sel} items={data.items} dv={dv} site={data.settings.site} jiraMode={pl.jira.mode} onSelect={setSelected} weekOpts={weekOpts} pl={pl} onClose={() => setSelected(null)} />}
 
       {modal?.kind === 'task' && <TaskModal preset={modal.preset} dv={dv} weekOpts={weekOpts} onSave={pl.saveTask} onClose={closeModal} />}
       {modal?.kind === 'member' && (

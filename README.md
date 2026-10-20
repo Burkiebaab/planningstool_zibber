@@ -18,7 +18,7 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 - **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.
 - **Team & capaciteit**: teamleden, werkdagen, vakanties, bezetting voor 8 weken en terugkerende taken.
 
-Verder: zijpaneel per item (planning verdelen over weken, Jira-velden), waarschuwingen
+Verder: zijpaneel per item (planning verdelen over weken, Jira-velden, subtaken en hoofdtaak uit Jira), waarschuwingen
 (geen inschatting, na deadline, overboekt, gesloten in Jira), filters en zoeken, CSV-export van de planning
 en een Jira-koppeling (gesimuleerd in de demo, of via import van een Jira CSV-export; matching op Issue key).
 

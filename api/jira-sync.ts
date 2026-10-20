@@ -33,7 +33,7 @@ const ALLOWED_DOMAIN = 'zibber.nl';
 const DEFAULT_JQL = 'project = MKT AND issuetype != Epic AND statusCategory != Done ORDER BY created DESC';
 const MAX_ISSUES = 1000;
 const MAX_KEYS = 100;
-const FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'created', 'duedate', 'timeoriginalestimate', 'labels', 'components', 'parent', 'description'];
+const FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'created', 'duedate', 'timeoriginalestimate', 'labels', 'components', 'parent', 'subtasks', 'description'];
 const MAX_TEXT = 8000;
 
 type Req = IncomingMessage & { body?: unknown };
@@ -55,7 +55,18 @@ interface JiraIssue {
   components: string[];
   epic: string;
   epicKey: string;
+  /** Hoofdtaak, alleen als dit ticket een subtaak is (de parent is dan geen epic). */
+  parentKey: string;
+  parentTitle: string;
+  subtasks: JiraSubtask[];
   description: string;
+}
+
+interface JiraSubtask {
+  key: string;
+  title: string;
+  status: string;
+  done: boolean;
 }
 
 class HttpError extends Error {
@@ -134,7 +145,7 @@ type RawIssue = {
   key: string;
   fields: {
     summary?: string;
-    issuetype?: { name?: string };
+    issuetype?: { name?: string; subtask?: boolean };
     status?: { name?: string; statusCategory?: { key?: string } };
     priority?: { name?: string };
     assignee?: { displayName?: string } | null;
@@ -145,7 +156,8 @@ type RawIssue = {
     labels?: string[];
     components?: { name?: string }[];
     description?: AdfNode | null;
-    parent?: { key?: string; fields?: { summary?: string } };
+    parent?: { key?: string; fields?: { summary?: string; issuetype?: { name?: string; hierarchyLevel?: number } } };
+    subtasks?: { key: string; fields?: { summary?: string; status?: { name?: string; statusCategory?: { key?: string } } } }[];
   };
 };
 
@@ -199,6 +211,9 @@ const cleanText = (s: string) => s.replace(/\n{3,}/g, '\n\n').trim();
 function mapIssue(i: RawIssue): JiraIssue {
   const f = i.fields || {};
   const est = f.timeoriginalestimate;
+  // Bij een subtaak is de parent een gewone taak, geen epic. De epic vullen we later aan vanuit de hoofdtaak.
+  const pt = f.parent?.fields?.issuetype;
+  const isSub = f.issuetype?.subtask === true || (pt?.hierarchyLevel !== undefined ? pt.hierarchyLevel < 1 : !!pt && !/epic/i.test(pt.name || ''));
   return {
     key: i.key,
     summary: f.summary || i.key,
@@ -214,8 +229,16 @@ function mapIssue(i: RawIssue): JiraIssue {
     estimate: typeof est === 'number' && est > 0 ? Math.round((est / 3600) * 10) / 10 : null,
     labels: f.labels || [],
     components: (f.components || []).map((c) => c.name || '').filter(Boolean),
-    epic: f.parent?.fields?.summary || '',
-    epicKey: f.parent?.key || '',
+    epic: isSub ? '' : f.parent?.fields?.summary || '',
+    epicKey: isSub ? '' : f.parent?.key || '',
+    parentKey: isSub ? f.parent?.key || '' : '',
+    parentTitle: isSub ? f.parent?.fields?.summary || '' : '',
+    subtasks: (f.subtasks || []).map((s) => ({
+      key: s.key,
+      title: s.fields?.summary || s.key,
+      status: s.fields?.status?.name || '',
+      done: s.fields?.status?.statusCategory?.key === 'done',
+    })),
     description: cleanText(adfToText(f.description)).slice(0, MAX_TEXT),
   };
 }
@@ -486,7 +509,14 @@ export default async function handler(req: Req, res: Res) {
     const [issues, epics] = await Promise.all([search(cfg, jql), fetchEpics(cfg)]);
     const seen = new Set(issues.map((i) => i.key));
     const extra = await fetchKeys(cfg, [...new Set(keys)].filter((k) => !seen.has(k)));
-    send(res, 200, { site: new URL(cfg.site).host, issues: [...issues, ...extra.found], missing: extra.missing, epics });
+    const all = [...issues, ...extra.found];
+    // Een subtaak valt onder de epic van zijn hoofdtaak (als die hoofdtaak in de resultaten zit).
+    const byKey = new Map(all.map((i) => [i.key, i]));
+    all.forEach((i) => {
+      const parent = i.parentKey ? byKey.get(i.parentKey) : undefined;
+      if (parent && !i.epic) Object.assign(i, { epic: parent.epic, epicKey: parent.epicKey });
+    });
+    send(res, 200, { site: new URL(cfg.site).host, issues: all, missing: extra.missing, epics });
   } catch (err) {
     if (err instanceof HttpError) return send(res, err.status, { error: err.code, message: err.message });
     console.error(err);
