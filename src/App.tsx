@@ -82,6 +82,7 @@ export default function App({ initial, backend, account }: Props) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<InboxSort>({ key: 'prio', dir: 1 });
   const [colFilters, setColFilters] = useState<ColFilters>({});
+  const [showHidden, setShowHidden] = useState(false);
   const [weeksVisible, setWeeksVisible] = useState(loadWeeks);
   const [weekOffset, setWeekOffset] = useState(0);
   const [qOffset, setQOffset] = useState(0);
@@ -122,10 +123,12 @@ export default function App({ initial, backend, account }: Props) {
 
   const dv = useMemo(() => derive(data, weeksVisible), [data, weeksVisible]);
   const match = useMemo(() => makeMatcher(search, filters, dv.byId), [search, filters, dv.byId]);
-  const inboxFiltered = useMemo(() => sortItems(dv.inboxAll.filter(match), sort, { byId: dv.byId, tIso: dv.tIso }), [dv, match, sort]);
-  // De weekplanning toont alle openstaande taken, ook als ze al (deels) zijn ingepland.
+  const inboxBase = showHidden ? dv.hiddenAll : dv.inboxAll;
+  const inboxFiltered = useMemo(() => sortItems(inboxBase.filter(match), sort, { byId: dv.byId, tIso: dv.tIso }), [inboxBase, dv, match, sort]);
+  // De weekplanning toont alle openstaande taken, ook als ze al (deels) zijn ingepland. Taken die bewust
+  // niet worden ingepland (bijv. hoofdtaken met subtaken) staan er niet bij.
   const weekRail = useMemo(
-    () => sortItems(data.items.filter((i) => !isDone(i) && match(i)), sort, { byId: dv.byId, tIso: dv.tIso }),
+    () => sortItems(data.items.filter((i) => !isDone(i) && !i.noPlanning && match(i)), sort, { byId: dv.byId, tIso: dv.tIso }),
     [data.items, dv, match, sort],
   );
 
@@ -220,7 +223,11 @@ export default function App({ initial, backend, account }: Props) {
           {view === 'inbox' && (
             <InboxView
               items={inboxFiltered}
-              total={dv.inboxAll.length}
+              total={inboxBase.length}
+              showHidden={showHidden}
+              hiddenCount={dv.hiddenAll.length}
+              onShowHidden={setShowHidden}
+              onNoPlanning={pl.setNoPlanning}
               sort={sort}
               colFilters={colFilters}
               onColFilters={setColFilters}

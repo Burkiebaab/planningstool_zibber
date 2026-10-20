@@ -170,6 +170,15 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
                 </span>
               )}
             </div>
+            {!sel.recurring && (
+              <label className="check-row">
+                <input type="checkbox" checked={!!sel.noPlanning} onChange={(e) => pl.setNoPlanning(sel.id, e.target.checked)} />
+                <span>
+                  Niet inplannen
+                  <span className="field-hint">Haalt de taak uit Nog inplannen en de takenlijst van de weekplanning, bijv. een hoofdtaak waarvan je alleen de subtaken inplant.</span>
+                </span>
+              </label>
+            )}
             {sel.recurring ? (
               <p className="info-box">
                 {am
