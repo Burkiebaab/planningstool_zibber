@@ -1,4 +1,4 @@
-import { DAYS, DEPT_PERSON, PROJ_COLORS, WORKDAY_END, WORKDAY_START } from './constants';
+import { DAYS, DEPT_PERSON, PROJ_COLORS, BREAK_END, BREAK_START, WORKDAY_END, WORKDAY_START } from './constants';
 import { addDays, iso, monday, toDate } from './dates';
 import type { Item, Member } from './types';
 
@@ -90,11 +90,16 @@ export function capOf(m: Member, w: string): number {
   return Math.round(perDayOf(m) * workdaysIn(m, w).length * 10) / 10;
 }
 
-/** Deel van de beschikbare uren in week `w` dat op moment `now` al verstreken is (werkdag van WORKDAY_START tot WORKDAY_END). */
+/** Gewerkte uren tussen het begin van de werkdag en uur `h`, zonder de pauze. */
+const workedUntil = (h: number) => {
+  const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
+  return clamp(h, WORKDAY_START, WORKDAY_END) - WORKDAY_START - (clamp(h, BREAK_START, BREAK_END) - BREAK_START);
+};
+
+/** Deel van de beschikbare uren in week `w` dat op moment `now` al verstreken is (werkdag van WORKDAY_START tot WORKDAY_END, zonder pauze). */
 export function elapsedOf(m: Member, w: string, now: Date): number {
   const today = iso(now);
-  const hour = now.getHours() + now.getMinutes() / 60;
-  const todayPart = Math.min(1, Math.max(0, (hour - WORKDAY_START) / (WORKDAY_END - WORKDAY_START)));
+  const todayPart = workedUntil(now.getHours() + now.getMinutes() / 60) / workedUntil(WORKDAY_END);
   const days = workdaysIn(m, w).reduce((t, ds) => t + (ds < today ? 1 : ds === today ? todayPart : 0), 0);
   return Math.round(perDayOf(m) * days * 10) / 10;
 }
