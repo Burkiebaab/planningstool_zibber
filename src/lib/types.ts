@@ -41,6 +41,10 @@ export interface Item {
   labels: string[];
   components: string[];
   epic: string;
+  /** Hoofdtaak in Jira, als dit ticket een subtaak is. */
+  jiraParent?: { key: string; title: string };
+  /** Subtaken van dit ticket volgens Jira (bij de laatste sync). */
+  jiraSubtasks?: JiraSubtask[];
   market: string;
   channel: string;
   note: string;
@@ -117,7 +121,17 @@ export interface JiraIssue {
   components: string[];
   epic: string;
   epicKey?: string;
+  parentKey?: string;
+  parentTitle?: string;
+  subtasks?: JiraSubtask[];
   description?: string;
+}
+
+export interface JiraSubtask {
+  key: string;
+  title: string;
+  status: string;
+  done: boolean;
 }
 
 export interface JiraComment {

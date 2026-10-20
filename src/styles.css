@@ -2500,3 +2500,69 @@ select.input-xs {
   flex-direction: column;
   gap: 2px;
 }
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sub-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sub-row:hover {
+  border-color: #b9cdeb;
+  background: var(--hover-soft);
+}
+.sub-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border: 1.5px solid var(--input-border);
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.sub-check.on {
+  background: #2e9c8f;
+  border-color: #2e9c8f;
+}
+.sub-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.sub-title {
+  font-size: 13.5px;
+}
+.sub-done .sub-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.sub-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+.sub-ext {
+  font-size: 12px;
+  color: var(--muted-2);
+}

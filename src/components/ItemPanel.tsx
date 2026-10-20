@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CHANNELS, MARKETS, PRIORITIES, STATUSES } from '../lib/constants';
 import { fmt, fmtH } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { allocSum, estimateOf, personOf } from '../lib/planning';
+import { allocSum, estimateOf, isDone, personOf } from '../lib/planning';
 import type { JiraState, Planning } from '../lib/store';
 import type { Item, Priority, Recurring, Status } from '../lib/types';
 import { JiraComments } from './JiraComments';
@@ -17,6 +17,8 @@ const SPREAD_OPTS: Opt[] = [1, 2, 3, 4, 5, 6, 8].map((n) => ({ value: String(n),
 
 interface Props {
   item: Item;
+  /** Alle items, om subtaken en de hoofdtaak in de planning te vinden. */
+  items: Item[];
   dv: Derived;
   site: string;
   jiraMode: JiraState['mode'];
@@ -26,7 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, pl, onClose }: Props) {
+export function ItemPanel({ item: sel, items, dv, site, jiraMode, onSelect, weekOpts, pl, onClose }: Props) {
   const jiraLive = jiraMode === 'live';
   const [confirmConvert, setConfirmConvert] = useState(false);
   const [converting, setConverting] = useState(false);
@@ -45,6 +47,11 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
   const realConvert = jiraMode === 'live' || jiraMode === 'error';
   const canConvert = !sel.recurring && (realConvert || jiraMode === 'demo');
   const jiraUrl = 'https://' + site + '/browse/' + sel.key;
+  const subtasks = subtasksOf(sel, items);
+  const parent = sel.jiraParent;
+  const parentItem = parent && items.find((i) => i.source === 'jira' && i.key === parent.key);
+  // Een subtaak valt in Jira altijd onder de epic van zijn hoofdtaak; die kun je hier niet los wijzigen.
+  const projectLocked = !!parent && jiraLive;
   const projectOpts = dv.projectOptions.includes(sel.project) || !sel.project ? dv.projectOptions : [sel.project, ...dv.projectOptions];
 
   const text = (k: 'title' | 'start' | 'due' | 'channel' | 'requester' | 'requesterName' | 'note') => ({
@@ -92,6 +99,52 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
             </div>
           )}
 
+          {parent && (
+            <div className="panel-section">
+              <span className="panel-h">Hoofdtaak</span>
+              <SubRow
+                k={parent.key}
+                title={parentItem ? parentItem.title : parent.title}
+                item={parentItem}
+                dv={dv}
+                jiraUrl={'https://' + site + '/browse/' + parent.key}
+                onSelect={onSelect}
+              />
+            </div>
+          )}
+
+          {(subtasks.length > 0 || (isJira && !parent && sel.jiraSubtasks)) && (
+            <div className="panel-section">
+              <div className="panel-section-head">
+                <span className="panel-h">Subtaken</span>
+                {subtasks.length > 0 && (
+                  <span className="muted" style={{ fontSize: 12.5, fontWeight: 600 }}>
+                    {subtasks.filter((t) => t.done).length} van {subtasks.length} klaar
+                  </span>
+                )}
+              </div>
+              {subtasks.length ? (
+                <div className="sub-list">
+                  {subtasks.map((t) => (
+                    <SubRow
+                      key={t.key}
+                      k={t.key}
+                      title={t.title}
+                      status={t.status}
+                      done={t.done}
+                      item={t.item}
+                      dv={dv}
+                      jiraUrl={'https://' + site + '/browse/' + t.key}
+                      onSelect={onSelect}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <span className="muted" style={{ fontSize: 13 }}>Geen subtaken in Jira.</span>
+              )}
+            </div>
+          )}
+
           {warnings.length > 0 && (
             <div className="panel-warnings">
               {warnings.map((w) => (
@@ -105,9 +158,10 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
 
           <div className="form-grid">
             <Field label={dv.epicsActive ? 'Project (epic in Jira)' : 'Project'} wide>
-              <select className="input" value={sel.project} onChange={(e) => void pl.setProject(sel.id, e.target.value)}>
+              <select className="input" value={sel.project} disabled={projectLocked} onChange={(e) => void pl.setProject(sel.id, e.target.value)}>
                 <Options list={projectOpts} />
               </select>
+              {projectLocked && <span className="field-hint">Volgt de epic van de hoofdtaak in Jira.</span>}
             </Field>
             <Field label="Status">
               <select className="input" value={sel.status} onChange={(e) => up({ status: e.target.value as Status })}>
@@ -333,5 +387,64 @@ export function ItemPanel({ item: sel, dv, site, jiraMode, onSelect, weekOpts, p
         </div>
       </aside>
     </>
+  );
+}
+
+interface SubtaskEntry {
+  key: string;
+  title: string;
+  status: string;
+  done: boolean;
+  item?: Item;
+}
+
+/** Subtaken van een item: volgens Jira, aangevuld met items in de planning die dit ticket als hoofdtaak hebben. */
+function subtasksOf(sel: Item, items: Item[]): SubtaskEntry[] {
+  if (sel.source !== 'jira' || !sel.key) return [];
+  const byKey = new Map(items.filter((i) => i.source === 'jira').map((i) => [i.key, i]));
+  const out: SubtaskEntry[] = (sel.jiraSubtasks || []).map((t) => ({ ...t, item: byKey.get(t.key) }));
+  items.forEach((i) => {
+    if (i.source === 'jira' && i.jiraParent?.key === sel.key && !out.some((t) => t.key === i.key))
+      out.push({ key: i.key, title: i.title, status: i.jiraStatus, done: isDone(i), item: i });
+  });
+  return out;
+}
+
+/** Eén subtaak of hoofdtaak: opent het item in de planning, of anders het ticket in Jira. */
+function SubRow(p: { k: string; title: string; status?: string; done?: boolean; item?: Item; dv: Derived; jiraUrl: string; onSelect: (id: string) => void }) {
+  const i = p.item;
+  const done = p.done ?? (i ? isDone(i) : false);
+  const status = p.status ?? i?.jiraStatus ?? '';
+  const who = i ? [...new Set((i.allocations || []).map((a) => p.dv.byId[a.m]?.name).filter(Boolean))].join(', ') : '';
+  const plan = !i
+    ? 'Niet in de planning'
+    : i.noPlanning
+      ? 'Niet inplannen'
+      : (i.allocations || []).length
+        ? fmtH(allocSum(i)) + 'u ingepland' + (who ? ' · ' + who : '')
+        : 'Nog niet ingepland';
+  const body = (
+    <>
+      <span className={'sub-check' + (done ? ' on' : '')}>{done ? '✓' : ''}</span>
+      <span className="sub-main">
+        <span className="sub-title">
+          <strong>{p.k}</strong> {p.title}
+        </span>
+        <span className="sub-meta">
+          {status && <span>{status}</span>}
+          <span>{plan}</span>
+        </span>
+      </span>
+      {!i && <span className="sub-ext">↗</span>}
+    </>
+  );
+  return i ? (
+    <button type="button" className={'sub-row' + (done ? ' sub-done' : '')} title="Openen" onClick={() => p.onSelect(i.id)}>
+      {body}
+    </button>
+  ) : (
+    <a className={'sub-row' + (done ? ' sub-done' : '')} href={p.jiraUrl} target="_blank" rel="noopener" title="Openen in Jira">
+      {body}
+    </a>
   );
 }
