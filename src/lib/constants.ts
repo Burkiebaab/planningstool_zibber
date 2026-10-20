@@ -14,7 +14,7 @@ export const WEEKS_DEFAULT = 4;
 /** Vanaf welk percentage van de capaciteit een week als "vol" geldt. */
 export const FULL_THRESHOLD = 0.85;
 /** Werkdag voor het berekenen van verstreken tijd in de weekplanning (uren, lokale tijd). */
-export const WORKDAY_START = 9;
+export const WORKDAY_START = 8.5;
 export const WORKDAY_END = 17;
 
 export const NL_M = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
