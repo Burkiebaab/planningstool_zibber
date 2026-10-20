@@ -1,8 +1,8 @@
-import type { DragEvent, MouseEvent, ReactNode } from 'react';
+import { useEffect, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react';
 import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, WEEK_SPANS, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { allocSum, capOf, dayLabel, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
+import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, Segmented, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -43,6 +43,7 @@ export function WeekView(p: Props) {
     const cur = iso(d) === dv.mon0i;
     return { iso: iso(d), date: d, label: 'Wk ' + weekNo(d) + (cur ? ' · nu' : ''), range: wkRange(d), cur };
   });
+  const now = useNow();
   const todo = p.railItems.filter(inInbox).length;
   const first = weeks[0];
   const last = weeks[weeks.length - 1];
@@ -52,12 +53,11 @@ export function WeekView(p: Props) {
     if (p.hover !== key) p.onHover(key);
   };
 
-  const renderCell = (m: Member, w: (typeof weeks)[number]) => {
-    const cap = capOf(m, w.iso);
-    const pl = dv.plOf(m.id, w.iso);
-    const key = m.id + '|' + w.iso;
-    const st: CapState = pl === 0 && cap === 0 ? 'off' : cap === 0 || pl > cap + 0.01 ? 'over' : pl >= cap * FULL_THRESHOLD ? 'full' : 'ok';
-    const chips: Chip[] = (dv.idx[key] || []).map(({ i, a }, k) => ({
+  /** Planning, capaciteit en voortgang van één teamlid in één week. */
+  const cellOf = (m: Member, w: string) => {
+    const cap = capOf(m, w);
+    const pl = dv.plOf(m.id, w);
+    const chips: Chip[] = (dv.idx[m.id + '|' + w] || []).map(({ i, a }, k) => ({
       key: i.id + k,
       item: i,
       hours: +a.h || 0,
@@ -66,9 +66,17 @@ export function WeekView(p: Props) {
       checked: !!a.done,
     }));
     dv.recurs.forEach((i) => {
-      const h = recurH(i, w.iso, m.id);
-      if (h) chips.push({ key: i.id + '-r', item: i, hours: h, src: '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks'), from: null, checked: isChecked(i, m.id, w.iso) });
+      const h = recurH(i, w, m.id);
+      if (h) chips.push({ key: i.id + '-r', item: i, hours: h, src: '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks'), from: null, checked: isChecked(i, m.id, w) });
     });
+    const done = chips.reduce((t, c) => t + (c.checked || isDone(c.item) ? c.hours : 0), 0);
+    return { cap, pl, chips, done, elapsed: elapsedOf(m, w, now) };
+  };
+
+  const renderCell = (m: Member, w: (typeof weeks)[number]) => {
+    const { cap, pl, chips, done, elapsed } = cellOf(m, w.iso);
+    const key = m.id + '|' + w.iso;
+    const st: CapState = pl === 0 && cap === 0 ? 'off' : cap === 0 || pl > cap + 0.01 ? 'over' : pl >= cap * FULL_THRESHOLD ? 'full' : 'ok';
     const workdays = m.workdays.filter((d) => d <= 7).length;
     const perDay = workdays ? m.hours / workdays : 0;
     const offDays = perDay ? Math.round((m.hours - cap) / perDay) : 0;
@@ -97,6 +105,7 @@ export function WeekView(p: Props) {
           </div>
           {offDays > 0 && <span className="cap-note">{offDays + (offDays === 1 ? ' vrije dag' : ' vrije dagen')}</span>}
         </div>
+        {(w.iso <= dv.mon0i || done > 0) && (cap > 0 || done > 0) && <Progress done={done} cap={cap} elapsed={elapsed} />}
         {chips.map((c) => {
           const warn = c.from ? dv.warningsOf(c.item.id) : [];
           const closed = isDone(c.item);
@@ -212,12 +221,22 @@ export function WeekView(p: Props) {
         <div className="week-board">
           <div className="week-grid" style={{ gridTemplateColumns: `210px repeat(${p.weeksVisible}, minmax(180px, 1fr))`, minWidth: 210 + 180 * p.weeksVisible }}>
             <div className="week-corner eyebrow">Team</div>
-            {weeks.map((w) => (
-              <div key={w.iso} className="week-head" style={{ background: w.cur ? '#EEF4FE' : '#F7F9FD' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: w.cur ? '#1F7FF0' : '#1E2E4B' }}>{w.label}</span>
-                <span className="muted" style={{ fontSize: 12 }}>{w.range}</span>
-              </div>
-            ))}
+            {weeks.map((w) => {
+              const team = w.iso <= dv.mon0i ? dv.active.map((m) => cellOf(m, w.iso)) : [];
+              const sum = (f: (c: (typeof team)[number]) => number) => team.reduce((t, c) => t + f(c), 0);
+              const tCap = sum((c) => c.cap);
+              return (
+                <div key={w.iso} className="week-head" style={{ background: w.cur ? '#EEF4FE' : '#F7F9FD' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: w.cur ? '#1F7FF0' : '#1E2E4B' }}>{w.label}</span>
+                  <span className="muted" style={{ fontSize: 12 }}>{w.range}</span>
+                  {tCap > 0 && (
+                    <span className="week-head-progress" title="Afgevinkte uren van het hele team tegenover de beschikbare uren die al verstreken zijn">
+                      Team: {fmtH(sum((c) => c.done))}u gedaan · {fmtH(sum((c) => c.elapsed))} / {fmtH(tCap)}u verstreken
+                    </span>
+                  )}
+                </div>
+              );
+            })}
             {dv.active.map((m) => (
               <MemberRow key={m.id} m={m} onMenu={(e) => p.onMemberMenu(e, m.id)}>
                 {weeks.map((w) => renderCell(m, w))}
@@ -231,6 +250,38 @@ export function WeekView(p: Props) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Elke 5 minuten de huidige tijd, zodat de verstreken tijd bijblijft. */
+function useNow() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
+}
+
+/** Afgevinkte uren tegenover beschikbare uren, met een streepje voor de tijd die al verstreken is. */
+function Progress({ done, cap, elapsed }: { done: number; cap: number; elapsed: number }) {
+  const diff = Math.round((done - elapsed) * 10) / 10;
+  const ahead = diff >= 0;
+  const status = Math.abs(diff) < 0.5 ? 'Op schema' : fmtH(Math.abs(diff)) + 'u ' + (ahead ? 'voor' : 'achter');
+  const pctOf = (h: number) => (cap ? Math.min(100, (h / cap) * 100) : h ? 100 : 0) + '%';
+  return (
+    <div className="cap progress" title={`Gedaan: ${fmtH(done)}u · verstreken: ${fmtH(elapsed)}u van ${fmtH(cap)}u beschikbaar`}>
+      <div className="cap-label">
+        <span>
+          {fmtH(done)} / {fmtH(cap)}u gedaan
+        </span>
+        <span style={{ color: ahead ? CAP_FG.ok : CAP_FG.full }}>{status}</span>
+      </div>
+      <div className="bar progress-bar">
+        <div style={{ width: pctOf(done), background: ahead ? CAP_BAR.ok : CAP_BAR.full }} />
+        {elapsed > 0 && <span className="progress-mark" style={{ left: pctOf(elapsed) }} />}
       </div>
     </div>
   );

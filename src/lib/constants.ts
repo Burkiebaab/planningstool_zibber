@@ -13,6 +13,9 @@ export const WEEK_SPANS: [string, string][] = [
 export const WEEKS_DEFAULT = 4;
 /** Vanaf welk percentage van de capaciteit een week als "vol" geldt. */
 export const FULL_THRESHOLD = 0.85;
+/** Werkdag voor het berekenen van verstreken tijd in de weekplanning (uren, lokale tijd). */
+export const WORKDAY_START = 9;
+export const WORKDAY_END = 17;
 
 export const NL_M = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
 export const NL_MF = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];

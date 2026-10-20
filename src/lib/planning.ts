@@ -1,4 +1,4 @@
-import { DAYS, DEPT_PERSON, PROJ_COLORS } from './constants';
+import { DAYS, DEPT_PERSON, PROJ_COLORS, WORKDAY_END, WORKDAY_START } from './constants';
 import { addDays, iso, monday, toDate } from './dates';
 import type { Item, Member } from './types';
 
@@ -69,19 +69,34 @@ export const blankItem = (): Item => ({
   demo: false,
 });
 
-/** Beschikbare uren van een teamlid in de week die begint op maandag `w`, rekening houdend met vrije dagen. */
-export function capOf(m: Member, w: string): number {
-  if (!m.workdays || !m.workdays.length) return 0;
-  const per = m.hours / m.workdays.length;
+/** Werkdagen (zonder vrije dagen) van een teamlid in de week die begint op maandag `w`, als ISO-datums. */
+function workdaysIn(m: Member, w: string): string[] {
+  if (!m.workdays || !m.workdays.length) return [];
   const st = toDate(w);
-  let n = 0;
+  const out: string[] = [];
   for (let k = 0; k < 7; k++) {
     if (!m.workdays.includes(k + 1)) continue;
     const ds = iso(addDays(st, k));
     if ((m.vacations || []).some((v) => v.from && v.from <= ds && ds <= (v.to || v.from))) continue;
-    n++;
+    out.push(ds);
   }
-  return Math.round(per * n * 10) / 10;
+  return out;
+}
+
+const perDayOf = (m: Member) => (m.workdays && m.workdays.length ? m.hours / m.workdays.length : 0);
+
+/** Beschikbare uren van een teamlid in de week die begint op maandag `w`, rekening houdend met vrije dagen. */
+export function capOf(m: Member, w: string): number {
+  return Math.round(perDayOf(m) * workdaysIn(m, w).length * 10) / 10;
+}
+
+/** Deel van de beschikbare uren in week `w` dat op moment `now` al verstreken is (werkdag van WORKDAY_START tot WORKDAY_END). */
+export function elapsedOf(m: Member, w: string, now: Date): number {
+  const today = iso(now);
+  const hour = now.getHours() + now.getMinutes() / 60;
+  const todayPart = Math.min(1, Math.max(0, (hour - WORKDAY_START) / (WORKDAY_END - WORKDAY_START)));
+  const days = workdaysIn(m, w).reduce((t, ds) => t + (ds < today ? 1 : ds === today ? todayPart : 0), 0);
+  return Math.round(perDayOf(m) * days * 10) / 10;
 }
 
 /** Uren die een terugkerende taak in week `w` bij teamlid `mId` blokt. */

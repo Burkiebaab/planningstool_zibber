@@ -13,6 +13,9 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
   zo kun je één taak ook over meerdere mensen verdelen. Filter je op een uitvoerder, dan zie je alle taken op die naam (ook waarvoor
   die persoon is ingepland). Per cel zie je gepland vs. beschikbaar (ruimte / vol / overboekt), inclusief vrije dagen en terugkerende
   taken. Ingeplande blokken vink je af als ze gedaan zijn; dat staat alleen in de planning en gaat niet naar Jira.
+  Voor deze en eerdere weken zie je per cel ook *gedaan vs. beschikbaar*: de afgevinkte (of afgeronde) uren tegenover de
+  beschikbare uren, met een streepje voor de tijd die al verstreken is (werkdag 9:00–17:00) en of iemand voor of achter loopt.
+  Bovenaan de week staat hetzelfde voor het hele team.
   Kies bovenaan of je 4 weken of een kwartaal (13 weken) vooruit kijkt; die keuze wordt per browser onthouden.
 - **Kwartaaloverzicht**: projecten en werkzaamheden op een tijdlijn met deadlines.
 - **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.

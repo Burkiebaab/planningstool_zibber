@@ -1169,6 +1169,26 @@ textarea:focus {
   height: 100%;
   border-radius: 99px;
 }
+.progress-bar {
+  position: relative;
+  overflow: visible;
+  background: #e6ecf5;
+}
+.progress-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: #1e2e4b;
+}
+.week-head-progress {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
 .chip {
   background: var(--blue-soft);
   border-radius: 8px;
