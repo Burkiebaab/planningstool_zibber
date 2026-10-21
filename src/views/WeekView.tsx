@@ -331,7 +331,12 @@ function ParentLine({ item, items }: { item: Item; items: Item[] }) {
       </span>
     );
   }
-  if (!item.project || item.project === NO_PROJECT) return null;
+  if (!item.project || item.project === NO_PROJECT)
+    return (
+      <span className="rail-parent rail-parent-none" title="Deze taak valt onder geen hoofdtaak of epic">
+        Geen bovenliggend item
+      </span>
+    );
   return (
     <span className="rail-parent ellipsis" title={'Project: ' + item.project}>
       <Dot color={projColor(item.project)} /> {item.project}

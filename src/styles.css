@@ -1031,6 +1031,10 @@ textarea:focus {
   color: var(--muted);
   margin-bottom: -3px;
 }
+.rail-parent-none {
+  font-style: italic;
+  opacity: 0.7;
+}
 .rail-parent .dot {
   margin-right: 2px;
   vertical-align: 1px;
