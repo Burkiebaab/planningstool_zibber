@@ -1,5 +1,5 @@
 import { useEffect, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react';
-import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, WEEK_SPANS, type CapState } from '../lib/constants';
+import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, NO_PROJECT, WEEK_SPANS, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
 import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
@@ -171,6 +171,7 @@ export function WeekView(p: Props) {
           const st = planState(i, dv.byId);
           return (
             <div key={i.id} className="rail-card" draggable onDragStart={(e) => p.onDragStart(e, i.id, null)} onDragEnd={p.onDragEnd} onClick={() => p.onSelect(i.id)}>
+              <ParentLine item={i} items={p.railItems} />
               <div className="rail-card-head">
                 <Dot color={d.prioColor} style={{ marginTop: 5 }} />
                 <span className="clamp2">{i.title}</span>
@@ -315,6 +316,25 @@ function AssigneeBadge({ item, byId }: { item: Item; byId: Record<string, Member
   return (
     <span className="rail-assignee" title={'Uitvoerder: ' + name + (m ? '' : ' (Jira)')}>
       <Avatar color={m ? m.color : '#9AA8BF'} initials={m ? memberInitials(m) : initialsOf(name)} size={20} fontSize={9} />
+    </span>
+  );
+}
+
+/** Bovenliggend item van een taak in de lijst: de hoofdtaak bij een subtaak, anders het project (epic). */
+function ParentLine({ item, items }: { item: Item; items: Item[] }) {
+  const parent = item.jiraParent;
+  if (parent) {
+    const title = items.find((i) => i.source === 'jira' && i.key === parent.key)?.title || parent.title;
+    return (
+      <span className="rail-parent ellipsis" title={'Hoofdtaak: ' + parent.key + ' ' + title}>
+        ↳ {title}
+      </span>
+    );
+  }
+  if (!item.project || item.project === NO_PROJECT) return null;
+  return (
+    <span className="rail-parent ellipsis" title={'Project: ' + item.project}>
+      <Dot color={projColor(item.project)} /> {item.project}
     </span>
   );
 }
