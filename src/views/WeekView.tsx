@@ -143,6 +143,9 @@ export function WeekView(p: Props) {
                 <span>{c.src}</span>
                 {warn.length > 0 && <WarnDot text={warn.join(' · ')} size={14} />}
               </div>
+              <div className="chip-meta chip-parent">
+                <ParentLine item={c.item} items={p.railItems} />
+              </div>
             </div>
           );
         })}
@@ -171,7 +174,6 @@ export function WeekView(p: Props) {
           const st = planState(i, dv.byId);
           return (
             <div key={i.id} className="rail-card" draggable onDragStart={(e) => p.onDragStart(e, i.id, null)} onDragEnd={p.onDragEnd} onClick={() => p.onSelect(i.id)}>
-              <ParentLine item={i} items={p.railItems} />
               <div className="rail-card-head">
                 <Dot color={d.prioColor} style={{ marginTop: 5 }} />
                 <span className="clamp2">{i.title}</span>
@@ -189,6 +191,7 @@ export function WeekView(p: Props) {
                   </span>
                 )}
                 {w.length > 0 && <WarnDot text={d.warnText} size={16} />}
+                <ParentLine item={i} items={p.railItems} showNone />
               </div>
             </div>
           );
@@ -320,8 +323,8 @@ function AssigneeBadge({ item, byId }: { item: Item; byId: Record<string, Member
   );
 }
 
-/** Bovenliggend item van een taak in de lijst: de hoofdtaak bij een subtaak, anders het project (epic). */
-function ParentLine({ item, items }: { item: Item; items: Item[] }) {
+/** Bovenliggend item van een taak: de hoofdtaak bij een subtaak, anders het project (epic). */
+function ParentLine({ item, items, showNone }: { item: Item; items: Item[]; showNone?: boolean }) {
   const parent = item.jiraParent;
   if (parent) {
     const title = items.find((i) => i.source === 'jira' && i.key === parent.key)?.title || parent.title;
@@ -331,12 +334,14 @@ function ParentLine({ item, items }: { item: Item; items: Item[] }) {
       </span>
     );
   }
-  if (!item.project || item.project === NO_PROJECT)
+  if (!item.project || item.project === NO_PROJECT) {
+    if (!showNone) return null;
     return (
       <span className="rail-parent rail-parent-none" title="Deze taak valt onder geen hoofdtaak of epic">
         Geen bovenliggend item
       </span>
     );
+  }
   return (
     <span className="rail-parent ellipsis" title={'Project: ' + item.project}>
       <Dot color={projColor(item.project)} /> {item.project}
