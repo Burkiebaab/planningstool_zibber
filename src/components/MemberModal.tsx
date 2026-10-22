@@ -16,8 +16,8 @@ interface Props {
 export function MemberModal({ member, memberCount, onSave, onClose }: Props) {
   const [f, setF] = useState<MemberForm>(() =>
     member
-      ? { ...member, vacations: member.vacations.map((v) => ({ ...v })) }
-      : { id: null, name: '', role: '', color: COLORS[memberCount % COLORS.length], initials: '', hours: 32, workdays: [1, 2, 3, 4, 5], type: 'intern', vacations: [], archived: false },
+      ? { ...member, reserve: member.reserve ?? 0, vacations: member.vacations.map((v) => ({ ...v })) }
+      : { id: null, name: '', role: '', color: COLORS[memberCount % COLORS.length], initials: '', hours: 32, reserve: 0, workdays: [1, 2, 3, 4, 5], type: 'intern', vacations: [], archived: false },
   );
   // Initialen volgen de naam totdat iemand ze zelf aanpast.
   const [initTouched, setInitTouched] = useState(!!member);
@@ -77,6 +77,20 @@ export function MemberModal({ member, memberCount, onSave, onClose }: Props) {
               value={f.hours}
               onChange={(e) => set({ hours: e.target.value === '' ? '' : Math.max(0, +e.target.value) })}
             />
+          </Field>
+          <Field label="Niet planbaar (%)">
+            <input
+              className="input input-lg"
+              type="number"
+              min={0}
+              max={90}
+              step={5}
+              value={f.reserve}
+              onChange={(e) => set({ reserve: e.target.value === '' ? '' : Math.min(90, Math.max(0, +e.target.value)) })}
+            />
+            <span className="muted" style={{ fontSize: 12 }}>
+              {+f.reserve > 0 && f.hours ? 'Gereserveerd voor meetings en onvoorziene zaken · ' + fmtH((+f.hours * (100 - +f.reserve)) / 100) + 'u planbaar' : 'Reserve voor meetings en onvoorziene zaken'}
+            </span>
           </Field>
         </div>
 

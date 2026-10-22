@@ -20,6 +20,8 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 - **Kwartaaloverzicht**: projecten en werkzaamheden op een tijdlijn met deadlines.
 - **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.
 - **Team & capaciteit**: teamleden, werkdagen, vakanties, bezetting voor 8 weken en terugkerende taken.
+  Per teamlid stel je een percentage *niet planbaar* in (bijv. 10% voor meetings en onvoorziene zaken). De weekplanning,
+  de capaciteit, de overboekingen en de verstreken tijd rekenen dan met de planbare uren.
 
 Verder: zijpaneel per item (planning verdelen over weken, Jira-velden, subtaken en hoofdtaak uit Jira), waarschuwingen
 (geen inschatting, na deadline, overboekt, gesloten in Jira), filters en zoeken, CSV-export van de planning

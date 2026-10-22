@@ -2,7 +2,7 @@ import { useEffect, useState, type DragEvent, type MouseEvent, type ReactNode } 
 import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, NO_PROJECT, WEEK_SPANS, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, projColor, recurH } from '../lib/planning';
+import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, offDaysOf, projColor, recurH, reserveOf } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, Segmented, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -77,9 +77,8 @@ export function WeekView(p: Props) {
     const { cap, pl, chips, done, elapsed } = cellOf(m, w.iso);
     const key = m.id + '|' + w.iso;
     const st: CapState = pl === 0 && cap === 0 ? 'off' : cap === 0 || pl > cap + 0.01 ? 'over' : pl >= cap * FULL_THRESHOLD ? 'full' : 'ok';
-    const workdays = m.workdays.filter((d) => d <= 7).length;
-    const perDay = workdays ? m.hours / workdays : 0;
-    const offDays = perDay ? Math.round((m.hours - cap) / perDay) : 0;
+    const offDays = offDaysOf(m, w.iso);
+    const reserve = reserveOf(m);
     const pct = cap ? Math.min(100, (pl / cap) * 100) + '%' : pl ? '100%' : '0%';
 
     return (
@@ -94,7 +93,7 @@ export function WeekView(p: Props) {
         }}
       >
         <div className="cap">
-          <div className="cap-label">
+          <div className="cap-label" title={reserve ? fmtH(cap) + 'u planbaar: ' + reserve + '% van de uren is gereserveerd voor meetings en onvoorziene zaken' : undefined}>
             <span>
               {fmtH(pl)} / {fmtH(cap)}u
             </span>
@@ -299,7 +298,7 @@ function MemberRow({ m, onMenu, children }: { m: Member; onMenu: (e: MouseEvent)
         <div className="week-member-info">
           <span className="ellipsis" style={{ fontSize: 14, fontWeight: 700 }}>{m.name}</span>
           <span className="ellipsis muted" style={{ fontSize: 12 }}>{m.role || '—'}</span>
-          <span style={{ fontSize: 11.5, color: '#7A89A3' }}>{fmtH(m.hours)}u/week · {dayLabel(m)}</span>
+          <span style={{ fontSize: 11.5, color: '#7A89A3' }}>{fmtH(m.hours)}u/week{reserveOf(m) ? ' · ' + reserveOf(m) + '% niet planbaar' : ''} · {dayLabel(m)}</span>
           {m.type === 'extern' && <span className="badge badge-soft badge-sm" style={{ alignSelf: 'flex-start', marginTop: 2 }}>Extern</span>}
         </div>
         <button type="button" className="more-btn" title="Opties" onClick={onMenu}>

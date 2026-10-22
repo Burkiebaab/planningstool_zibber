@@ -30,9 +30,10 @@ export interface TaskForm {
 
 export type TaskErrors = Partial<Record<'project' | 'title' | 'estimate', string>>;
 
-export interface MemberForm extends Omit<Member, 'id' | 'hours'> {
+export interface MemberForm extends Omit<Member, 'id' | 'hours' | 'reserve'> {
   id: string | null;
   hours: number | '';
+  reserve: number | '';
 }
 
 /** Planning uit deze browser, of null als er niets (geldigs) staat. */
@@ -502,6 +503,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
       color: f.color,
       initials: (f.initials || initialsOf(f.name)).slice(0, 3),
       hours: Math.max(0, +f.hours || 0),
+      reserve: Math.min(90, Math.max(0, Math.round(+f.reserve || 0))),
       workdays: f.workdays.slice().sort(),
       type: f.type,
       vacations: f.vacations.filter((v) => v.from),

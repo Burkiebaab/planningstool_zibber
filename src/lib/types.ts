@@ -72,6 +72,8 @@ export interface Member {
   color: string;
   initials: string;
   hours: number;
+  /** Percentage van de uren dat niet planbaar is (meetings, onvoorziene zaken). Leeg = 0. */
+  reserve?: number;
   /** 1 = maandag … 7 = zondag */
   workdays: number[];
   type: 'intern' | 'extern';
