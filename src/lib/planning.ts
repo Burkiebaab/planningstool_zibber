@@ -83,9 +83,19 @@ function workdaysIn(m: Member, w: string): string[] {
   return out;
 }
 
-const perDayOf = (m: Member) => (m.workdays && m.workdays.length ? m.hours / m.workdays.length : 0);
+/** Niet-planbaar percentage van een teamlid (0 t/m 90). */
+export const reserveOf = (m: Member) => Math.min(90, Math.max(0, +(m.reserve ?? 0) || 0));
 
-/** Beschikbare uren van een teamlid in de week die begint op maandag `w`, rekening houdend met vrije dagen. */
+/** Contracturen per werkdag. */
+const grossPerDayOf = (m: Member) => (m.workdays && m.workdays.length ? m.hours / m.workdays.length : 0);
+
+/** Planbare uren per werkdag: contracturen min het niet-planbare deel. */
+const perDayOf = (m: Member) => grossPerDayOf(m) * (1 - reserveOf(m) / 100);
+
+/** Planbare uren per week, zonder vrije dagen. */
+export const plannableHours = (m: Member) => Math.round(m.hours * (1 - reserveOf(m) / 100) * 10) / 10;
+
+/** Beschikbare (planbare) uren van een teamlid in de week die begint op maandag `w`, rekening houdend met vrije dagen en het niet-planbare deel. */
 export function capOf(m: Member, w: string): number {
   return Math.round(perDayOf(m) * workdaysIn(m, w).length * 10) / 10;
 }
@@ -96,7 +106,7 @@ const workedUntil = (h: number) => {
   return clamp(h, WORKDAY_START, WORKDAY_END) - WORKDAY_START - (clamp(h, BREAK_START, BREAK_END) - BREAK_START);
 };
 
-/** Deel van de beschikbare uren in week `w` dat op moment `now` al verstreken is (werkdag van WORKDAY_START tot WORKDAY_END, zonder pauze). */
+/** Deel van de beschikbare (planbare) uren in week `w` dat op moment `now` al verstreken is (werkdag van WORKDAY_START tot WORKDAY_END, zonder pauze). */
 export function elapsedOf(m: Member, w: string, now: Date): number {
   const today = iso(now);
   const todayPart = workedUntil(now.getHours() + now.getMinutes() / 60) / workedUntil(WORKDAY_END);
@@ -126,5 +136,8 @@ export const dayLabel = (m: Member) => {
   const d = (m.workdays || []).slice().sort();
   return d.join(',') === '1,2,3,4,5' ? 'ma t/m vr' : d.map((x) => DAYS[x - 1]).join(', ') || 'geen';
 };
+
+/** Aantal vrije dagen (vakantie e.d.) van een teamlid in week `w`. */
+export const offDaysOf = (m: Member, w: string) => (m.workdays || []).filter((d) => d <= 7).length - workdaysIn(m, w).length;
 
 export const memberInitials = (m: Member) => m.initials || initialsOf(m.name);

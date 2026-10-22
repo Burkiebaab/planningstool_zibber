@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react';
 import { CAP_BAR, CAP_FG, FULL_THRESHOLD, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, weekNo } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { capOf, dayLabel, memberInitials } from '../lib/planning';
+import { capOf, dayLabel, memberInitials, plannableHours, reserveOf } from '../lib/planning';
 import type { Member } from '../lib/types';
 import { Avatar } from '../components/ui';
 
@@ -59,6 +59,8 @@ export function TeamView(p: Props) {
                 <div className="kv">
                   <span>Uren</span>
                   <strong>{fmtH(m.hours)}u per week</strong>
+                  <span>Planbaar</span>
+                  <span>{reserveOf(m) ? fmtH(plannableHours(m)) + 'u (' + reserveOf(m) + '% niet planbaar)' : fmtH(m.hours) + 'u (100%)'}</span>
                   <span>Werkdagen</span>
                   <span>{dayLabel(m)}</span>
                   <span>Type</span>
@@ -97,7 +99,7 @@ export function TeamView(p: Props) {
       <section className="section">
         <div className="section-titles">
           <h2>Capaciteit komende 8 weken</h2>
-          <p>Bezetting inclusief terugkerende taken en vrije dagen.</p>
+          <p>Bezetting van de planbare uren, inclusief terugkerende taken en vrije dagen.</p>
         </div>
         <div className="cap-table-wrap">
           <div className="cap-table">
@@ -178,7 +180,7 @@ function CapRow({ m, weeks, plOf }: { m: Member; weeks: string[]; plOf: (mId: st
         const r = cap ? pl / cap : pl ? 2 : 0;
         const st: CapState = !cap && !pl ? 'off' : r > 1.001 ? 'over' : r >= FULL_THRESHOLD ? 'full' : 'ok';
         return (
-          <div key={w} className="cap-td" title={fmtH(pl) + ' van ' + fmtH(cap) + 'u'}>
+          <div key={w} className="cap-td" title={fmtH(pl) + ' van ' + fmtH(cap) + 'u planbaar' + (reserveOf(m) ? ' (' + reserveOf(m) + '% niet planbaar)' : '')}>
             <span style={{ fontSize: 13, fontWeight: 700, color: st === 'ok' ? '#1E2E4B' : CAP_FG[st] }}>{cap ? Math.round(r * 100) + '%' : 'Afwezig'}</span>
             <div className="bar">
               <div style={{ width: Math.min(100, r * 100) + '%', background: CAP_BAR[st] }} />
