@@ -164,7 +164,9 @@ export function makeMatcher(search: string, F: Filters, byId: Record<string, Mem
     if (q) {
       const hay = [
         i.title, i.key, i.project, i.channel, i.requester, personOf(i), i.note,
-        byId[i.assignee || '']?.name,
+        // Zoeken op een hoofdtaak toont ook de subtaken eronder (zoals de regel ↳ in de weekplanning).
+        i.jiraParent?.key, i.jiraParent?.title,
+        byId[i.assignee || '']?.name, i.jiraAssignee,
         ...(i.allocations || []).map((a) => byId[a.m]?.name),
       ].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;

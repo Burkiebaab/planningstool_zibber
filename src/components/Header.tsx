@@ -73,7 +73,7 @@ export function Header(p: Props) {
       </div>
       <div className="header-filters">
         <div className="search">
-          <input value={p.search} onChange={(e) => p.onSearch(e.target.value)} placeholder="Zoek op titel, key, project of persoon" />
+          <input value={p.search} onChange={(e) => p.onSearch(e.target.value)} placeholder="Zoek op titel, key, hoofdtaak, project of persoon" />
           <span className="search-icon" />
         </div>
         {fdef.map(([k, list]) => (
