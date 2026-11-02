@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { applyToSnapshot, diff, fetchAll, snapshotOf, subscribe, writeChanges, type Snapshot } from './remote';
 import { supabase } from './supabase';
+import type { HistoryLog } from './history';
 import type { AppData } from './types';
 
 const DEBOUNCE_MS = 300;
@@ -11,7 +12,13 @@ const RETRY_MS = 5000;
  * weggeschreven, wijzigingen van collega's komen via realtime binnen.
  * Doet niets als `email` null is (lokale modus).
  */
-export function useRemoteSync(data: AppData, setData: Dispatch<SetStateAction<AppData>>, email: string | null, toast: (msg: string) => void) {
+export function useRemoteSync(
+  data: AppData,
+  setData: Dispatch<SetStateAction<AppData>>,
+  email: string | null,
+  toast: (msg: string) => void,
+  history: HistoryLog,
+) {
   const synced = useRef<Snapshot | null>(null);
   // De startdata komt rechtstreeks uit de database, dus dat is wat er nu "opgeslagen" is.
   if (synced.current === null && email) synced.current = snapshotOf(data);
@@ -26,11 +33,15 @@ export function useRemoteSync(data: AppData, setData: Dispatch<SetStateAction<Ap
     chain.current = chain.current.then(async () => {
       const s = synced.current;
       if (!supabase || !email || !s) return;
-      const c = diff(s, dataRef.current);
+      const cur = dataRef.current;
+      const c = diff(s, cur);
       if (!c) return;
+      // Wat er veranderd is t.o.v. wat in de database staat; wijzigingen van collega's zitten al in de snapshot.
+      const pending = history.prepare(s.items, s.members, cur);
       try {
         await writeChanges(supabase, c, email);
         applyToSnapshot(s, c);
+        history.commit(pending);
         if (failing.current) {
           failing.current = false;
           toast('Verbinding hersteld. Alles is opgeslagen.');
@@ -46,7 +57,7 @@ export function useRemoteSync(data: AppData, setData: Dispatch<SetStateAction<Ap
       }
     });
     return chain.current;
-  }, [email, toast]);
+  }, [email, toast, history]);
 
   // Elke wijziging: kort wachten (typen) en dan wegschrijven.
   useEffect(() => {

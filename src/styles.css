@@ -2602,3 +2602,82 @@ select.input-xs {
   font-size: 12px;
   color: var(--muted-2);
 }
+
+/* ── Wijzigingsgeschiedenis ──────────────────────────────── */
+.hist-list {
+  display: flex;
+  flex-direction: column;
+}
+.hist-list-compact {
+  gap: 10px;
+}
+.hist-row,
+.hist-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.hist-group {
+  padding: 12px 18px;
+  border-top: 1px solid var(--line-2);
+}
+.hist-group:first-child {
+  border-top: 1px solid var(--line);
+}
+.hist-click {
+  cursor: pointer;
+}
+.hist-click:hover {
+  background: #f7faff;
+}
+.hist-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--navy);
+  font-size: 10.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.hist-avatar-jira {
+  background: #e3ecfb;
+  color: #2a5bb8;
+}
+.hist-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.hist-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.hist-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.hist-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted-2);
+}
+.hist-text {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.hist-meta {
+  font-size: 12px;
+  color: var(--muted-2);
+}

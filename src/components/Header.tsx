@@ -20,6 +20,8 @@ interface Props {
   projects: string[];
   persons: string[];
   assignees: Opt[];
+  /** Alleen het zoekveld tonen (de filters gelden niet voor dit scherm). */
+  searchOnly?: boolean;
 }
 
 export function Header(p: Props) {
@@ -31,7 +33,7 @@ export function Header(p: Props) {
     ['requester', [{ value: '', label: 'Alle aanvragers' }, ...p.persons]],
     ['assignee', [{ value: '', label: 'Alle uitvoerders' }, ...p.assignees]],
   ];
-  const filtersOn = Object.values(p.filters).some(Boolean) || !!p.search.trim();
+  const filtersOn = (!p.searchOnly && Object.values(p.filters).some(Boolean)) || !!p.search.trim();
   const n = p.warnList.length;
 
   return (
@@ -73,10 +75,14 @@ export function Header(p: Props) {
       </div>
       <div className="header-filters">
         <div className="search">
-          <input value={p.search} onChange={(e) => p.onSearch(e.target.value)} placeholder="Zoek op titel, key, hoofdtaak, project of persoon" />
+          <input
+            value={p.search}
+            onChange={(e) => p.onSearch(e.target.value)}
+            placeholder={p.searchOnly ? 'Zoek op taak, teamlid, wijziging of persoon' : 'Zoek op titel, key, hoofdtaak, project of persoon'}
+          />
           <span className="search-icon" />
         </div>
-        {fdef.map(([k, list]) => (
+        {!p.searchOnly && fdef.map(([k, list]) => (
           <select key={k} className={'filter' + (p.filters[k] ? ' filter-on' : '')} value={p.filters[k]} onChange={(e) => p.onFilter(k, e.target.value)}>
             <Options list={list} />
           </select>

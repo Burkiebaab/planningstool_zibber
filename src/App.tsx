@@ -18,6 +18,7 @@ import { InboxView } from './views/InboxView';
 import { ProjectsView } from './views/ProjectsView';
 import { QuarterView } from './views/QuarterView';
 import { TeamView } from './views/TeamView';
+import { HistoryView } from './views/HistoryView';
 import { WeekView } from './views/WeekView';
 
 const VIEW_KEY = STORAGE_KEY + '-view';
@@ -30,6 +31,7 @@ const SUBS: Record<View, string> = {
   quarter: 'Projecten, epics en deadlines op een tijdlijn.',
   projects: 'Alle projecten (epics) met hun taken, uitvoerders en voortgang.',
   team: 'Beheer je team, beschikbaarheid en vaste taken.',
+  history: 'Wie wijzigde wat en wanneer, in de planning en het team.',
 };
 
 
@@ -217,6 +219,7 @@ export default function App({ initial, backend, account }: Props) {
           projects={dv.projects}
           persons={dv.personList}
           assignees={dv.assigneeOptions}
+          searchOnly={view === 'history'}
         />
 
         <div className="content">
@@ -295,6 +298,16 @@ export default function App({ initial, backend, account }: Props) {
                 setSelected(null);
               }}
               onLoadDemo={pl.loadDemo}
+            />
+          )}
+          {view === 'history' && (
+            <HistoryView
+              log={pl.history}
+              items={data.items}
+              members={data.members}
+              search={search}
+              onSelect={setSelected}
+              onEditMember={(id) => setModal({ kind: 'member', id })}
             />
           )}
         </div>

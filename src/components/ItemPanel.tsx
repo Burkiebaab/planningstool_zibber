@@ -5,6 +5,7 @@ import type { Derived } from '../lib/derive';
 import { allocSum, estimateOf, isDone, personOf } from '../lib/planning';
 import type { JiraState, Planning } from '../lib/store';
 import type { Item, Priority, Recurring, Status } from '../lib/types';
+import { ItemHistory } from './History';
 import { JiraComments } from './JiraComments';
 import { Field, LinkedText, NewBadge, NumberInput, Options, SrcTag, type Opt } from './ui';
 
@@ -324,6 +325,8 @@ export function ItemPanel({ item: sel, items, dv, site, jiraMode, onSelect, week
               <span style={{ fontSize: 12, color: '#7A89A3' }}>Jira-velden worden bij elke sync bijgewerkt. Je planning blijft staan.</span>
             </div>
           )}
+
+          <ItemHistory log={pl.history} itemId={sel.id} />
         </div>
 
         {confirmConvert && (
