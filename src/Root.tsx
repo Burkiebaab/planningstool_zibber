@@ -104,5 +104,5 @@ function Workspace({ sb, account }: { sb: SupabaseClient; account: Account }) {
   if (phase.s === 'loading') return <Splash />;
   if (phase.s === 'error') return <ErrorScreen message={phase.message} onRetry={load} onSignOut={account.onSignOut} />;
   if (phase.s === 'setup') return <Setup local={readLocal()} onChoose={setup} />;
-  return <App initial={phase.data} backend={{ kind: 'remote', email: account.email }} account={account} />;
+  return <App initial={phase.data} backend={{ kind: 'remote', email: account.email, name: account.name }} account={account} />;
 }

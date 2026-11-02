@@ -53,11 +53,30 @@ create table if not exists public.settings (
   updated_at  timestamptz not null default now()
 );
 
+-- Wijzigingsgeschiedenis: wie wijzigde wat en wanneer (één regel per gewijzigd veld).
+-- Snel opeenvolgende wijzigingen aan hetzelfde veld worden door de app samengevoegd in één regel.
+create table if not exists public.history (
+  id          text primary key,
+  at          timestamptz not null default now(),
+  by_email    text,
+  by_name     text,
+  kind        text not null,
+  ref         text not null,
+  title       text,
+  field       text not null,
+  label       text not null,
+  from_text   text,
+  to_text     text
+);
+
+create index if not exists history_at_idx on public.history (at desc);
+create index if not exists history_ref_at_idx on public.history (ref, at desc);
+
 -- ── Beveiliging (Row Level Security) ─────────────────────────────────────
 do $$
 declare t text;
 begin
-  foreach t in array array['items', 'members', 'projects', 'settings'] loop
+  foreach t in array array['items', 'members', 'projects', 'settings', 'history'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('drop policy if exists "Alleen Zibber" on public.%I', t);
     execute format(
@@ -73,7 +92,7 @@ end $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['items', 'members', 'projects', 'settings'] loop
+  foreach t in array array['items', 'members', 'projects', 'settings', 'history'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t

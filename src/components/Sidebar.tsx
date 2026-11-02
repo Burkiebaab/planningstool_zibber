@@ -10,6 +10,7 @@ export const VIEWS: [View, string][] = [
   ['quarter', 'Kwartaaloverzicht'],
   ['projects', 'Alle projecten'],
   ['team', 'Team & capaciteit'],
+  ['history', 'Wijzigingen'],
 ];
 
 interface Props {

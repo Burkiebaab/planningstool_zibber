@@ -22,6 +22,13 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
 - **Team & capaciteit**: teamleden, werkdagen, vakanties, bezetting voor 8 weken en terugkerende taken.
   Per teamlid stel je een percentage *niet planbaar* in (bijv. 10% voor meetings en onvoorziene zaken). De weekplanning,
   de capaciteit, de overboekingen en de verstreken tijd rekenen dan met de planbare uren.
+- **Wijzigingen**: wie wijzigde wat en wanneer, per dag, met filters op taken/team en persoon. Klik op een regel om de taak
+  of het teamlid te openen. In het zijpaneel van een taak staat onderaan de geschiedenis van die taak.
+  Vastgelegd worden onder andere titel, project, status, prioriteit, uitvoerder, uren, datums, notitie, de planning
+  (blokken toegevoegd, verschoven, uren aangepast, afgevinkt) en wijzigingen aan teamleden. Wijzigingen die de Jira-sync
+  doorvoert staan op naam van *Jira-sync*. Snel opeenvolgende wijzigingen aan hetzelfde veld (bijv. typen in een notitie)
+  worden samengevoegd tot één regel. Met Supabase staat de geschiedenis in de tabel `history` en ziet iedereen hem;
+  zonder Supabase alleen in de eigen browser (laatste 1000 regels).
 
 Verder: zijpaneel per item (planning verdelen over weken, Jira-velden, subtaken en hoofdtaak uit Jira), waarschuwingen
 (geen inschatting, na deadline, overboekt, gesloten in Jira), filters en zoeken, CSV-export van de planning
@@ -39,6 +46,7 @@ zonder inlog. Handig voor ontwikkelen.
 ### Supabase instellen
 
 1. Voer [`supabase/schema.sql`](supabase/schema.sql) uit in Supabase → **SQL Editor**. Het script kan veilig opnieuw worden uitgevoerd.
+   Na een update van de app (bijv. de wijzigingsgeschiedenis, tabel `history`) voer je het opnieuw uit.
 2. Activeer bij **Authentication → Hooks → Before User Created** de Postgres-functie `public.hook_alleen_zibber`
    (weigert aanmeldingen van buiten @zibber.nl).
 3. Zet bij **Authentication → Providers** Google aan en *Email* uit.

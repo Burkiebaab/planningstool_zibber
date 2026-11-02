@@ -6,7 +6,9 @@ import { exportPlanning } from './exportCsv';
 import { csvToIssues, mergeIssues, toIssue } from './jira';
 import { allocSum, blankItem, estimateOf, initialsOf, personOf, uid } from './planning';
 import { createJiraIssue, fetchLiveIssues, pushEstimate, pushParent } from './jiraLive';
+import { HistoryLog } from './history';
 import { useRemoteSync } from './remoteSync';
+import { supabase } from './supabase';
 import type { Allocation, AppData, DragInfo, Item, Member, Priority, Recurring, Settings, Status } from './types';
 
 export interface TaskForm {
@@ -65,7 +67,7 @@ export interface JiraState {
 }
 
 /** Waar de planning wordt bewaard: in deze browser, of in Supabase namens een ingelogde gebruiker. */
-export type Backend = { kind: 'local' } | { kind: 'remote'; email: string };
+export type Backend = { kind: 'local' } | { kind: 'remote'; email: string; name?: string };
 
 export function useToast() {
   const [toast, setToast] = useState<string | null>(null);
@@ -86,11 +88,41 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
   const syncingRef = useRef(false);
   const local = backend.kind === 'local';
 
-  useRemoteSync(data, setData, backend.kind === 'remote' ? backend.email : null, toast);
+  // Wijzigingsgeschiedenis: met database gedeeld via Supabase, lokaal in deze browser.
+  const historyRef = useRef<HistoryLog>();
+  if (!historyRef.current) {
+    historyRef.current =
+      backend.kind === 'remote' && supabase
+        ? new HistoryLog(supabase, { email: backend.email, name: backend.name || backend.email })
+        : new HistoryLog(null, { email: 'local', name: 'Jij' });
+  }
+  const history = historyRef.current;
+  useEffect(() => {
+    history.start();
+    return () => history.dispose();
+  }, [history]);
+
+  useRemoteSync(data, setData, backend.kind === 'remote' ? backend.email : null, toast, history);
 
   useEffect(() => {
     if (local) save(data);
   }, [data, local]);
+
+  // Lokale modus: wijzigingen vastleggen in de geschiedenis (niet die uit een ander tabblad).
+  const prevData = useRef(data);
+  const fromOtherTab = useRef(false);
+  useEffect(() => {
+    if (!local) return;
+    const prev = prevData.current;
+    prevData.current = data;
+    if (prev === data) return;
+    if (fromOtherTab.current) {
+      fromOtherTab.current = false;
+      return;
+    }
+    const pending = history.prepare(new Map(prev.items.map((i) => [i.id, i])), new Map(prev.members.map((m) => [m.id, m])), data);
+    history.commit(pending);
+  }, [data, local, history]);
 
   // Lokale modus: houd meerdere tabbladen in sync.
   useEffect(() => {
@@ -98,6 +130,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY || !e.newValue) return;
       try {
+        fromOtherTab.current = true;
         setData(JSON.parse(e.newValue));
       } catch {
         /* negeren */
@@ -112,6 +145,14 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
   }, []);
 
   const getItem = (id: string) => dataRef.current.items.find((x) => x.id === id);
+
+  /** Onthoudt welke items de Jira-sync heeft gewijzigd, zodat de geschiedenis die aan Jira toeschrijft. */
+  const markJira = (before: Item[], after: Item[]) => {
+    const old = new Map(before.map((i) => [i.id, i]));
+    after.forEach((i) => {
+      if (old.get(i.id) !== i) history.jiraVersions.set(i.id, i);
+    });
+  };
 
   const setSetting = <K extends keyof Settings>(k: K, v: Settings[K]) =>
     setData((d) => ({ ...d, settings: { ...d.settings, [k]: v } }));
@@ -164,6 +205,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
             });
             let settings = res.site && res.site !== d.settings.site ? { ...d.settings, site: res.site } : d.settings;
             if (res.epics && JSON.stringify(res.epics) !== JSON.stringify(d.settings.jiraEpics || [])) settings = { ...settings, jiraEpics: res.epics };
+            markJira(d.items, items);
             setData({ ...r.data, items, settings, lastSync: new Date().toISOString() });
             setJira({ mode: 'live' });
             done();
@@ -201,6 +243,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
           }
         }
         const r = mergeIssues(d, issues, true);
+        markJira(d.items, r.data.items);
         setData({ ...r.data, syncIdx: idx, lastSync: new Date().toISOString() });
         announce(r.added, r.closed);
       })();
@@ -267,6 +310,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
       const issues = csvToIssues(text);
       if (!issues.length) return 'Geen tickets gevonden. Staat de kolom "Issue key" in de export?';
       const r = mergeIssues(dataRef.current, issues, false);
+      markJira(dataRef.current.items, r.data.items);
       setData({ ...r.data, lastSync: new Date().toISOString() });
       return `${issues.length} tickets gelezen: ${r.added} nieuw, ${r.updated} bijgewerkt${r.closed ? ', ' + r.closed + ' gesloten' : ''}.`;
     } catch {
@@ -426,6 +470,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
         jiraEstimate: r.dropped.includes('timetracking') ? null : cur.estimate,
         isNew: false,
       };
+      if (newId !== id) history.converted.set(newId, id);
       setData((d) => ({ ...d, items: d.items.map((x) => (x.id === id ? converted : x)) }));
       const NAMES: Record<string, string> = { parent: 'epic', duedate: 'deadline', timetracking: 'uren', priority: 'prioriteit', labels: 'labels', description: 'beschrijving' };
       const skipped = r.dropped.map((f) => NAMES[f] || f);
@@ -573,6 +618,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
 
   return {
     data,
+    history,
     syncing,
     jira,
     updItem,
