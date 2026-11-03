@@ -45,6 +45,9 @@ export function WeekView(p: Props) {
   });
   const now = useNow();
   const todo = p.railItems.filter(inInbox).length;
+  const [onlyOpen, setOnlyOpen] = useOnlyOpen();
+  // Vinkje: alleen nieuwe taken en taken die nog (deels) ingepland moeten worden.
+  const rail = onlyOpen ? p.railItems.filter((i) => i.isNew || inInbox(i)) : p.railItems;
   const first = weeks[0];
   const last = weeks[weeks.length - 1];
 
@@ -160,14 +163,18 @@ export function WeekView(p: Props) {
       }}>
         <div className="rail-head">
           <span>Alle taken</span>
-          <span className="rail-count">{p.railItems.length}</span>
+          <span className="rail-count">{rail.length}</span>
         </div>
+        <label className="check rail-filter">
+          <input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />
+          Alleen nieuw en niet ingepland
+        </label>
         <span className="rail-hint">
           {todo ? todo + ' nog in te plannen. ' : 'Alles is ingepland. '}
           Sleep een taak naar een teamlid en week, ook als hij al is ingepland. Sleep een blok terug om het uit die week te halen.
         </span>
-        {p.railItems.length === 0 && <div className="rail-empty">Geen openstaande taken.</div>}
-        {p.railItems.map((i) => {
+        {rail.length === 0 && <div className="rail-empty">{onlyOpen && p.railItems.length ? 'Geen nieuwe of nog niet ingeplande taken.' : 'Geen openstaande taken.'}</div>}
+        {rail.map((i) => {
           const w = dv.warningsOf(i.id);
           const d = describe(i, w, dv.tIso);
           const st = planState(i, dv.byId);
@@ -346,6 +353,28 @@ function ParentLine({ item, items, showNone }: { item: Item; items: Item[]; show
       <Dot color={projColor(item.project)} /> {item.project}
     </span>
   );
+}
+
+const ONLY_OPEN_KEY = 'zibber-week-only-open';
+
+/** Vinkje "Alleen nieuw en niet ingepland", onthouden in deze browser. */
+function useOnlyOpen() {
+  const [on, setOn] = useState(() => {
+    try {
+      return localStorage.getItem(ONLY_OPEN_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const set = (v: boolean) => {
+    setOn(v);
+    try {
+      localStorage.setItem(ONLY_OPEN_KEY, v ? '1' : '0');
+    } catch {
+      /* negeren */
+    }
+  };
+  return [on, set] as const;
 }
 
 /** Planningsstatus van een taak in de lijst: volledig ingepland of afgevinkt, met wie wanneer. */

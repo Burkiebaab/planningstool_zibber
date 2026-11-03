@@ -993,6 +993,9 @@ textarea:focus {
   border-radius: 999px;
   background: #ffffff;
 }
+.rail-filter {
+  font-size: 12px;
+}
 .rail-hint {
   font-size: 12px;
   color: var(--muted);
