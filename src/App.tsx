@@ -222,7 +222,7 @@ export default function App({ initial, backend, account }: Props) {
           searchOnly={view === 'history'}
         />
 
-        <div className="content">
+        <div className={'content' + (view === 'week' ? ' content-week' : '')}>
           {view === 'inbox' && (
             <InboxView
               items={inboxFiltered}

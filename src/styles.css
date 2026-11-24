@@ -961,11 +961,24 @@ textarea:focus {
 }
 
 /* ── Weekplanning ────────────────────────────────────────── */
+/* De pagina zelf scrollt niet: alleen de takenlijst en het bord. Zo blijven de weekselectie
+   en de weekkoppen altijd in beeld, ook als je naar onderen scrollt. */
+.content-week {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
 .week-layout {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+}
+.content-week .week-layout {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
 }
 .rail {
   position: sticky;
@@ -1057,8 +1070,13 @@ textarea:focus {
 .rail-card-meta strong {
   color: var(--navy);
 }
+.content-week .rail {
+  max-height: 100%;
+  align-self: start;
+}
 .week-main {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1107,6 +1125,8 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 16px;
   overflow: auto;
+  min-height: 0;
+  flex: 0 1 auto;
   background: #ffffff;
 }
 .week-grid {
@@ -1115,7 +1135,8 @@ textarea:focus {
 .week-corner {
   position: sticky;
   left: 0;
-  z-index: 3;
+  top: 0;
+  z-index: 4;
   background: var(--head-bg);
   padding: 12px 14px;
   border-bottom: 1px solid var(--line);
@@ -1123,6 +1144,9 @@ textarea:focus {
   align-items: flex-end;
 }
 .week-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   padding: 10px 12px;
   border-left: 1px solid var(--line-2);
   border-bottom: 1px solid var(--line);
@@ -2517,6 +2541,17 @@ select.input-xs {
   .rail {
     position: static;
     max-height: 320px;
+  }
+  /* Op een smal scherm scrolt de pagina weer; het bord krijgt een eigen hoogte zodat de weekkoppen blijven staan. */
+  .content-week {
+    overflow: auto;
+    display: block;
+  }
+  .content-week .rail {
+    max-height: 320px;
+  }
+  .week-board {
+    max-height: 75vh;
   }
   .form-grid,
   .form-grid-title {
