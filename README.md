@@ -16,6 +16,9 @@ inplannen per teamlid en week, met zicht op capaciteit, deadlines en overboeking
   Voor deze en eerdere weken zie je per cel ook *gedaan vs. beschikbaar*: de afgevinkte (of afgeronde) uren tegenover de
   beschikbare uren, met een streepje voor de tijd die al verstreken is (werkdag 8:30–17:00, pauze 12:00–12:30 telt niet mee) en of iemand voor of achter loopt.
   Bovenaan de week staat hetzelfde voor het hele team.
+  Nederlandse feestdagen waarop iedereen vrij is (ook externe teamleden) staan in de weekkop en tellen als vrije dag in de
+  capaciteit: Nieuwjaarsdag, 2e Paasdag, Koningsdag, Hemelvaartsdag, 2e Pinksterdag en 1e en 2e Kerstdag
+  (Goede Vrijdag en Bevrijdingsdag niet). De datums worden per jaar berekend in `src/lib/holidays.ts`.
   Kies bovenaan of je 4 weken of een kwartaal (13 weken) vooruit kijkt; die keuze wordt per browser onthouden.
 - **Kwartaaloverzicht**: projecten en werkzaamheden op een tijdlijn met deadlines.
 - **Alle projecten**: alle projecten (met Jira: de epics) met hun taken, status, uitvoerder, deadline en voortgang.

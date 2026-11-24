@@ -1223,6 +1223,16 @@ textarea:focus {
   border-radius: 1px;
   background: #1e2e4b;
 }
+.week-head-holiday {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #fff1dc;
+  color: #8a5300;
+  font-size: 11px;
+  font-weight: 700;
+}
 .week-head-progress {
   margin-top: 2px;
   font-size: 11px;
