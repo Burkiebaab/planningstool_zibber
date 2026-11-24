@@ -1,5 +1,6 @@
 import { DAYS, DEPT_PERSON, PROJ_COLORS, BREAK_END, BREAK_START, WORKDAY_END, WORKDAY_START } from './constants';
 import { addDays, iso, monday, toDate } from './dates';
+import { holidayOn, type Holiday } from './holidays';
 import type { Item, Member } from './types';
 
 export const uid = () => 'i' + Math.random().toString(36).slice(2, 9);
@@ -69,7 +70,7 @@ export const blankItem = (): Item => ({
   demo: false,
 });
 
-/** Werkdagen (zonder vrije dagen) van een teamlid in de week die begint op maandag `w`, als ISO-datums. */
+/** Werkdagen (zonder vrije dagen en feestdagen) van een teamlid in de week die begint op maandag `w`, als ISO-datums. */
 function workdaysIn(m: Member, w: string): string[] {
   if (!m.workdays || !m.workdays.length) return [];
   const st = toDate(w);
@@ -77,6 +78,7 @@ function workdaysIn(m: Member, w: string): string[] {
   for (let k = 0; k < 7; k++) {
     if (!m.workdays.includes(k + 1)) continue;
     const ds = iso(addDays(st, k));
+    if (holidayOn(ds)) continue;
     if ((m.vacations || []).some((v) => v.from && v.from <= ds && ds <= (v.to || v.from))) continue;
     out.push(ds);
   }
@@ -137,7 +139,19 @@ export const dayLabel = (m: Member) => {
   return d.join(',') === '1,2,3,4,5' ? 'ma t/m vr' : d.map((x) => DAYS[x - 1]).join(', ') || 'geen';
 };
 
-/** Aantal vrije dagen (vakantie e.d.) van een teamlid in week `w`. */
-export const offDaysOf = (m: Member, w: string) => (m.workdays || []).filter((d) => d <= 7).length - workdaysIn(m, w).length;
+/** Feestdagen die in week `w` op een werkdag van het teamlid vallen. */
+export function holidaysIn(m: Member, w: string): Holiday[] {
+  const st = toDate(w);
+  const out: Holiday[] = [];
+  for (const d of m.workdays || []) {
+    const h = d >= 1 && d <= 7 ? holidayOn(iso(addDays(st, d - 1))) : undefined;
+    if (h) out.push(h);
+  }
+  return out;
+}
+
+/** Aantal vrije dagen (vakantie e.d., zonder feestdagen) van een teamlid in week `w`. */
+export const offDaysOf = (m: Member, w: string) =>
+  (m.workdays || []).filter((d) => d <= 7).length - workdaysIn(m, w).length - holidaysIn(m, w).length;
 
 export const memberInitials = (m: Member) => m.initials || initialsOf(m.name);

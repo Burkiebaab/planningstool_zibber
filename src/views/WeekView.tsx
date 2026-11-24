@@ -1,8 +1,9 @@
 import { useEffect, useState, type DragEvent, type MouseEvent, type ReactNode } from 'react';
-import { CAP_BAR, CAP_FG, CAP_LABEL, FULL_THRESHOLD, NO_PROJECT, WEEK_SPANS, type CapState } from '../lib/constants';
+import { CAP_BAR, CAP_FG, CAP_LABEL, DAYS, FULL_THRESHOLD, NO_PROJECT, WEEK_SPANS, type CapState } from '../lib/constants';
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, inInbox, initialsOf, isChecked, isDone, memberInitials, offDaysOf, projColor, recurH, reserveOf } from '../lib/planning';
+import { holidayOn } from '../lib/holidays';
+import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, holidaysIn, inInbox, initialsOf, isChecked, isDone, memberInitials, offDaysOf, projColor, recurH, reserveOf } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, Segmented, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -41,7 +42,12 @@ export function WeekView(p: Props) {
   const weeks = Array.from({ length: p.weeksVisible }, (_, k) => {
     const d = addDays(dv.mon0, 7 * (k + p.weekOffset));
     const cur = iso(d) === dv.mon0i;
-    return { iso: iso(d), date: d, label: 'Wk ' + weekNo(d) + (cur ? ' · nu' : ''), range: wkRange(d), cur };
+    // Feestdagen op ma t/m vr, voor de weekkop.
+    const holidays = [0, 1, 2, 3, 4].flatMap((k) => {
+      const h = holidayOn(iso(addDays(d, k)));
+      return h ? [h.name + ' (' + DAYS[k] + ')'] : [];
+    });
+    return { iso: iso(d), date: d, label: 'Wk ' + weekNo(d) + (cur ? ' · nu' : ''), range: wkRange(d), cur, holidays };
   });
   const now = useNow();
   const todo = p.railItems.filter(inInbox).length;
@@ -81,6 +87,7 @@ export function WeekView(p: Props) {
     const key = m.id + '|' + w.iso;
     const st: CapState = pl === 0 && cap === 0 ? 'off' : cap === 0 || pl > cap + 0.01 ? 'over' : pl >= cap * FULL_THRESHOLD ? 'full' : 'ok';
     const offDays = offDaysOf(m, w.iso);
+    const holidays = holidaysIn(m, w.iso);
     const reserve = reserveOf(m);
     const pct = cap ? Math.min(100, (pl / cap) * 100) + '%' : pl ? '100%' : '0%';
 
@@ -105,7 +112,16 @@ export function WeekView(p: Props) {
           <div className="bar">
             <div style={{ width: pct, background: CAP_BAR[st] }} />
           </div>
-          {offDays > 0 && <span className="cap-note">{offDays + (offDays === 1 ? ' vrije dag' : ' vrije dagen')}</span>}
+          {(offDays > 0 || holidays.length > 0) && (
+            <span className="cap-note" title={holidays.length ? 'Feestdag: ' + holidays.map((h) => h.name).join(', ') : undefined}>
+              {[
+                holidays.length ? holidays.length + (holidays.length === 1 ? ' feestdag' : ' feestdagen') : '',
+                offDays > 0 ? offDays + (offDays === 1 ? ' vrije dag' : ' vrije dagen') : '',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
         </div>
         {(w.iso <= dv.mon0i || done > 0) && (cap > 0 || done > 0) && <Progress done={done} cap={cap} elapsed={elapsed} />}
         {chips.map((c) => {
@@ -239,6 +255,11 @@ export function WeekView(p: Props) {
                 <div key={w.iso} className="week-head" style={{ background: w.cur ? '#EEF4FE' : '#F7F9FD' }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: w.cur ? '#1F7FF0' : '#1E2E4B' }}>{w.label}</span>
                   <span className="muted" style={{ fontSize: 12 }}>{w.range}</span>
+                  {w.holidays.length > 0 && (
+                    <span className="week-head-holiday" title="Feestdag: het hele team is vrij, de beschikbare uren zijn hierop aangepast">
+                      {w.holidays.join(' · ')}
+                    </span>
+                  )}
                   {tCap > 0 && (
                     <span className="week-head-progress" title="Afgevinkte uren van het hele team tegenover de beschikbare uren die al verstreken zijn">
                       Team: {fmtH(sum((c) => c.done))}u gedaan · {fmtH(sum((c) => c.elapsed))} / {fmtH(tCap)}u verstreken
