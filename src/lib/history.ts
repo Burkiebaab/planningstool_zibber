@@ -113,6 +113,15 @@ function recurDoneChanges(o: string[], n: string[], names: Names): Change[] {
   ];
 }
 
+/** Afwijkende uren van een terugkerende taak per week. */
+function recurHoursChanges(o: Record<string, number>, n: Record<string, number>, names: Names): Change[] {
+  const keys = [...new Set([...Object.keys(o), ...Object.keys(n)])].filter((k) => o[k] !== n[k]);
+  return keys.map((k) => {
+    const [m, w] = k.split('|');
+    return { field: 'recurh:' + k, label: 'Uren ' + names(m) + ', ' + week(w), from: k in o ? hours(o[k]) : 'Standaard', to: k in n ? hours(n[k]) : 'Standaard' };
+  });
+}
+
 /** Wat er aan een item is veranderd. `o` of `n` ontbreekt bij aanmaken of verwijderen. */
 export function itemChanges(o: Item | undefined, n: Item | undefined, names: Names): Change[] {
   if (!o && n) {
@@ -131,6 +140,7 @@ export function itemChanges(o: Item | undefined, n: Item | undefined, names: Nam
   if (o.source !== n.source && n.source === 'jira') out.push({ field: 'source', label: 'Omgezet naar Jira-ticket', from: '', to: n.key });
   if (!same(o.allocations, n.allocations)) out.push(...allocChanges(o.allocations || [], n.allocations || [], names));
   if (!same(o.recurDone, n.recurDone)) out.push(...recurDoneChanges(o.recurDone || [], n.recurDone || [], names));
+  if (!same(o.recurHours, n.recurHours)) out.push(...recurHoursChanges(o.recurHours || {}, n.recurHours || {}, names));
   return out;
 }
 

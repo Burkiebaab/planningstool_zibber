@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { CHANNELS, MARKETS, PRIORITIES, STATUSES } from '../lib/constants';
-import { fmt, fmtH } from '../lib/dates';
+import { addDays, fmt, fmtH, iso, toDate, weekNo } from '../lib/dates';
 import type { Derived } from '../lib/derive';
-import { allocSum, estimateOf, isDone, personOf } from '../lib/planning';
+import { allocSum, estimateOf, isDone, personOf, recurApplies, recurOverride } from '../lib/planning';
 import type { JiraState, Planning } from '../lib/store';
 import type { Item, Priority, Recurring, Status } from '../lib/types';
 import { ItemHistory } from './History';
@@ -26,10 +26,12 @@ interface Props {
   onSelect: (id: string) => void;
   weekOpts: Opt[];
   pl: Planning;
+  /** Week (maandag) waarvandaan het item is geopend in de weekplanning. */
+  focusWeek?: string;
   onClose: () => void;
 }
 
-export function ItemPanel({ item: sel, items, dv, site, jiraMode, onSelect, weekOpts, pl, onClose }: Props) {
+export function ItemPanel({ item: sel, items, dv, site, jiraMode, onSelect, weekOpts, pl, focusWeek, onClose }: Props) {
   const jiraLive = jiraMode === 'live';
   const [confirmConvert, setConfirmConvert] = useState(false);
   const [converting, setConverting] = useState(false);
@@ -235,11 +237,14 @@ export function ItemPanel({ item: sel, items, dv, site, jiraMode, onSelect, week
               </label>
             )}
             {sel.recurring ? (
-              <p className="info-box">
-                {am
-                  ? `Blokt automatisch ${fmtH(est)}u ${sel.recurring === 'wekelijks' ? 'per week' : 'in de eerste week van elke maand'} bij ${am.name}.`
-                  : 'Kies hierboven wie deze vaste taak doet. Dan blokt hij automatisch capaciteit.'}
-              </p>
+              <>
+                <p className="info-box">
+                  {am
+                    ? `Blokt automatisch ${fmtH(est)}u ${sel.recurring === 'wekelijks' ? 'per week' : 'in de eerste week van elke maand'} bij ${am.name}. Wijzig je de geschatte tijd, dan geldt dat voor alle weken. Pas hieronder de uren van één week aan.`
+                    : 'Kies hierboven wie deze vaste taak doet. Dan blokt hij automatisch capaciteit.'}
+                </p>
+                {am && <RecurWeeks item={sel} mId={am.id} est={est} from={focusWeek && focusWeek < dv.mon0i ? focusWeek : dv.mon0i} focusWeek={focusWeek} pl={pl} />}
+              </>
             ) : (
               <div className="alloc-list">
                 {(sel.allocations || []).map((a, ai) => (
@@ -449,5 +454,52 @@ function SubRow(p: { k: string; title: string; status?: string; done?: boolean; 
     <a className={'sub-row' + (done ? ' sub-done' : '')} href={p.jiraUrl} target="_blank" rel="noopener" title="Openen in Jira">
       {body}
     </a>
+  );
+}
+
+/** Uren van een terugkerende taak per week. Leeg = standaarduren; een getal geldt alleen voor die week. */
+function RecurWeeks({ item, mId, est, from, focusWeek, pl }: { item: Item; mId: string; est: number; from: string; focusWeek?: string; pl: Planning }) {
+  const weeks: string[] = [];
+  for (let k = 0; weeks.length < 8 && k < 60; k++) {
+    const w = iso(addDays(toDate(from), 7 * k));
+    if (recurApplies(item, w, mId)) weeks.push(w);
+  }
+  if (focusWeek && !weeks.includes(focusWeek) && recurApplies(item, focusWeek, mId)) weeks.push(focusWeek);
+  // Ook latere weken die al zijn aangepast.
+  Object.keys(item.recurHours || {}).forEach((k) => {
+    const [m, w] = k.split('|');
+    if (m === mId && w >= from && !weeks.includes(w) && recurApplies(item, w, mId)) weeks.push(w);
+  });
+  weeks.sort();
+  if (!weeks.length) return null;
+  return (
+    <div className="alloc-list">
+      <span className="field-label">Uren per week</span>
+      {weeks.map((w) => {
+        const ov = recurOverride(item, w, mId);
+        const d = toDate(w);
+        return (
+          <div key={w} className={'alloc-row recur-week' + (w === focusWeek ? ' recur-week-focus' : '')}>
+            <span className="recur-week-label">
+              Wk {weekNo(d)} · {fmt(d)}
+            </span>
+            <NumberInput
+              className="input input-sm"
+              value={ov ?? null}
+              placeholder={fmtH(est)}
+              title={'Leeg laten voor de standaard ' + fmtH(est) + 'u'}
+              onValue={(v) => pl.setRecurHours(item.id, mId, w, v)}
+            />
+            {ov != null ? (
+              <button type="button" className="x-btn" title={'Terug naar standaard (' + fmtH(est) + 'u)'} onClick={() => pl.setRecurHours(item.id, mId, w, null)}>
+                ↺
+              </button>
+            ) : (
+              <span className="muted recur-week-std">standaard</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

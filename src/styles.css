@@ -1988,6 +1988,21 @@ select.input-xs {
   gap: 6px;
   align-items: center;
 }
+.recur-week {
+  grid-template-columns: minmax(0, 1fr) 70px 70px;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+.recur-week-focus {
+  background: #eaf2fe;
+}
+.recur-week-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.recur-week-std {
+  font-size: 12px;
+}
 .spread-box {
   background: var(--blue-soft);
   border-radius: 12px;

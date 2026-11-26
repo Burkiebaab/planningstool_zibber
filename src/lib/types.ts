@@ -51,6 +51,8 @@ export interface Item {
   recurring: Recurring;
   /** Afgevinkte weken van een terugkerende taak, als '<teamlid-id>|<maandag>'. */
   recurDone?: string[];
+  /** Afwijkende uren van een terugkerende taak in één week, als '<teamlid-id>|<maandag>' → uren. Andere weken houden de standaarduren. */
+  recurHours?: Record<string, number>;
   /** Bewust niet inplannen (bijv. een hoofdtaak waarvan alleen de subtaken worden ingepland). Staat alleen in de tool. */
   noPlanning?: boolean;
   isNew: boolean;

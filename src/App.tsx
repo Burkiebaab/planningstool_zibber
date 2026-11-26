@@ -89,6 +89,8 @@ export default function App({ initial, backend, account }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [qOffset, setQOffset] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
+  /** Week van het blok waarop in de weekplanning is geklikt (voor de uren per week van een terugkerende taak). */
+  const [focus, setFocus] = useState<{ id: string; w: string } | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [warnOpen, setWarnOpen] = useState(false);
@@ -254,7 +256,10 @@ export default function App({ initial, backend, account }: Props) {
               match={match}
               hover={hover}
               onHover={setHover}
-              onSelect={setSelected}
+              onSelect={(id, w) => {
+                setSelected(id);
+                setFocus(w ? { id, w } : null);
+              }}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
               onDropCell={(mId, w) => {
@@ -315,7 +320,7 @@ export default function App({ initial, backend, account }: Props) {
 
       {warnOpen && <div className="click-away" style={{ zIndex: 44 }} onClick={() => setWarnOpen(false)} />}
 
-      {sel && <ItemPanel key={sel.id} item={sel} items={data.items} dv={dv} site={data.settings.site} jiraMode={pl.jira.mode} onSelect={setSelected} weekOpts={weekOpts} pl={pl} onClose={() => setSelected(null)} />}
+      {sel && <ItemPanel key={sel.id} item={sel} items={data.items} dv={dv} site={data.settings.site} jiraMode={pl.jira.mode} onSelect={setSelected} weekOpts={weekOpts} pl={pl} focusWeek={focus?.id === sel.id ? focus.w : undefined} onClose={() => setSelected(null)} />}
 
       {modal?.kind === 'task' && <TaskModal preset={modal.preset} dv={dv} weekOpts={weekOpts} onSave={pl.saveTask} onClose={closeModal} />}
       {modal?.kind === 'member' && (

@@ -3,7 +3,7 @@ import { CAP_BAR, CAP_FG, CAP_LABEL, DAYS, FULL_THRESHOLD, NO_PROJECT, WEEK_SPAN
 import { addDays, fmt, fmtH, iso, toDate, weekNo, wkRange } from '../lib/dates';
 import type { Derived } from '../lib/derive';
 import { holidayOn } from '../lib/holidays';
-import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, holidaysIn, inInbox, initialsOf, isChecked, isDone, memberInitials, offDaysOf, projColor, recurH, reserveOf } from '../lib/planning';
+import { allocSum, capOf, dayLabel, elapsedOf, estimateOf, holidaysIn, inInbox, initialsOf, isChecked, isDone, memberInitials, offDaysOf, projColor, recurApplies, recurH, recurOverride, reserveOf } from '../lib/planning';
 import type { Item, Member } from '../lib/types';
 import { Avatar, Dot, NewBadge, Segmented, SoftBadge, WarnDot } from '../components/ui';
 import { describe } from './describe';
@@ -18,7 +18,8 @@ interface Props {
   match: (i: Item) => boolean;
   hover: string | null;
   onHover: (key: string) => void;
-  onSelect: (id: string) => void;
+  /** `w` is de week van het aangeklikte blok, als dat er is. */
+  onSelect: (id: string, w?: string) => void;
   onDragStart: (e: DragEvent, id: string, from: { m: string; w: string } | null) => void;
   onDragEnd: () => void;
   onDropCell: (mId: string, w: string) => void;
@@ -75,8 +76,13 @@ export function WeekView(p: Props) {
       checked: !!a.done,
     }));
     dv.recurs.forEach((i) => {
+      if (!recurApplies(i, w, m.id)) return;
       const h = recurH(i, w, m.id);
-      if (h) chips.push({ key: i.id + '-r', item: i, hours: h, src: '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks'), from: null, checked: isChecked(i, m.id, w) });
+      // Ook met 0u deze week blijft het blok staan, zodat je de uren weer kunt terugzetten.
+      if (!h && !(estimateOf(i) > 0)) return;
+      const adjusted = recurOverride(i, w, m.id) != null;
+      const src = '↻ ' + (i.recurring === 'wekelijks' ? 'Wekelijks' : 'Maandelijks') + (adjusted ? ' · aangepast' : '');
+      chips.push({ key: i.id + '-r', item: i, hours: h, src, from: null, checked: isChecked(i, m.id, w) });
     });
     const done = chips.reduce((t, c) => t + (c.checked || isDone(c.item) ? c.hours : 0), 0);
     return { cap, pl, chips, done, elapsed: elapsedOf(m, w, now) };
@@ -136,7 +142,8 @@ export function WeekView(p: Props) {
               style={{ opacity: p.match(c.item) ? 1 : 0.28 }}
               onDragStart={(e) => (c.from ? p.onDragStart(e, c.item.id, c.from) : e.preventDefault())}
               onDragEnd={p.onDragEnd}
-              onClick={() => p.onSelect(c.item.id)}
+              onClick={() => p.onSelect(c.item.id, w.iso)}
+              title={c.item.recurring ? 'Klik om de uren van deze week aan te passen' : undefined}
             >
               <div className="chip-head">
                 <button

@@ -116,14 +116,25 @@ export function elapsedOf(m: Member, w: string, now: Date): number {
   return Math.round(perDayOf(m) * days * 10) / 10;
 }
 
+/** Valt een terugkerende taak in week `w` bij teamlid `mId`? */
+export function recurApplies(i: Item, w: string, mId: string): boolean {
+  if (!i.recurring || i.assignee !== mId || isDone(i)) return false;
+  if (i.start && w < iso(monday(toDate(i.start)))) return false;
+  if (i.recurring === 'wekelijks') return true;
+  if (i.recurring === 'maandelijks') return toDate(w).getDate() <= 7;
+  return false;
+}
+
+/** Afwijkende uren van een terugkerende taak in week `w` bij teamlid `mId`, of undefined als de standaarduren gelden. */
+export function recurOverride(i: Item, w: string, mId: string): number | undefined {
+  const v = (i.recurHours || {})[mId + '|' + w];
+  return v == null ? undefined : +v || 0;
+}
+
 /** Uren die een terugkerende taak in week `w` bij teamlid `mId` blokt. */
 export function recurH(i: Item, w: string, mId: string): number {
-  if (!i.recurring || i.assignee !== mId || isDone(i)) return 0;
-  if (i.start && w < iso(monday(toDate(i.start)))) return 0;
-  const h = estimateOf(i);
-  if (i.recurring === 'wekelijks') return h;
-  if (i.recurring === 'maandelijks') return toDate(w).getDate() <= 7 ? h : 0;
-  return 0;
+  if (!recurApplies(i, w, mId)) return 0;
+  return recurOverride(i, w, mId) ?? estimateOf(i);
 }
 
 /** Staat dit item (nog deels) bij Nog inplannen? */

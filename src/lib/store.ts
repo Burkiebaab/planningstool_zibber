@@ -379,6 +379,17 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     updItem(id, { allocations: al.map((a) => (a.m === mId && a.w === w ? { ...a, done: on } : a)) });
   };
 
+  /** Zet de uren van een terugkerende taak voor één week. `h` null = terug naar de standaarduren. */
+  const setRecurHours = (id: string, mId: string, w: string, h: number | null) => {
+    const i = getItem(id);
+    if (!i) return;
+    const k = mId + '|' + w;
+    const next = { ...(i.recurHours || {}) };
+    if (h == null || h === estimateOf(i)) delete next[k];
+    else next[k] = Math.max(0, h);
+    updItem(id, { recurHours: next });
+  };
+
   const dropOnRail = (drag: DragInfo) => {
     const from = drag.from;
     if (!from) return;
@@ -632,6 +643,7 @@ export function usePlanning(toast: (msg: string) => void, initial: AppData, back
     dropOn,
     dropOnRail,
     toggleCheck,
+    setRecurHours,
     updAlloc,
     removeAlloc,
     addAlloc,
